@@ -8,6 +8,7 @@ export type DrawDoc = {
   name: string;
   drawDate: Date;
   drawTime: string;
+  prizeAmount?: string;
   pricePerTicket: number;
   series: string[];
   ticketPrefix: string;
@@ -39,6 +40,7 @@ export type DrawPublic = {
   name: string;
   drawDate: string;
   drawTime: string;
+  prizeAmount?: string;
   pricePerTicket: number;
   series: string[];
   ticketPrefix: string;
@@ -83,6 +85,7 @@ function toDrawPublic(doc: DrawDoc): DrawPublic {
     name: doc.name,
     drawDate: doc.drawDate.toISOString(),
     drawTime: doc.drawTime,
+    prizeAmount: doc.prizeAmount,
     pricePerTicket: doc.pricePerTicket,
     series: doc.series,
     ticketPrefix: doc.ticketPrefix,
@@ -322,6 +325,87 @@ export async function quickPickTickets(
 
   const numbers = candidates.slice(0, quantity).map((t) => t.number);
   return bookTicketsByNumbers(userId, drawId, numbers);
+}
+
+// ─── Ticket generation ────────────────────────────────────────────────────────
+
+/**
+ * Generates all tickets for a draw based on its configuration.
+ * Each (series × range) combination creates a ticket document.
+ * Idempotent — uses ordered:false and ignores duplicate key errors.
+ * Returns the total number of tickets inserted.
+ */
+export async function generateTicketsForDraw(drawId: string | ObjectId): Promise<number> {
+  const oid = typeof drawId === "string" ? new ObjectId(drawId) : drawId;
+  const db = await getDb();
+
+  const draw = await db.collection<DrawDoc>("draws").findOne({ _id: oid });
+  if (!draw) throw new Error("Draw not found.");
+
+  const { series, ticketPrefix, ticketRangeStart, ticketRangeEnd } = draw;
+  const now = new Date();
+
+  // Total tickets per series — guard against huge ranges (max 100 000)
+  const rangeSize = Math.min(ticketRangeEnd - ticketRangeStart + 1, 100_000);
+  const BATCH = 1_000;
+
+  let inserted = 0;
+
+  for (const s of series) {
+    let batchStart = ticketRangeStart;
+    while (batchStart <= ticketRangeEnd) {
+      const batchEnd = Math.min(batchStart + BATCH - 1, ticketRangeEnd);
+      const docs: Omit<TicketDoc, "_id">[] = [];
+
+      for (let n = batchStart; n <= batchEnd; n++) {
+        const numericPart = n;
+        const number = `${ticketPrefix}-${s}-${n}`;
+
+        // LP-special: last 100 numbers in range per series
+        const isLpSpecial = n >= ticketRangeEnd - 99;
+        const category: TicketDoc["category"] = isLpSpecial ? "lp_special" : "regular";
+
+        docs.push({
+          drawId: oid,
+          series: s,
+          number,
+          numericPart,
+          status: "available",
+          category,
+          createdAt: now,
+        });
+      }
+
+      try {
+        const result = await db.collection<TicketDoc>("tickets").insertMany(
+          docs as TicketDoc[],
+          { ordered: false },
+        );
+        inserted += result.insertedCount;
+      } catch (err: unknown) {
+        // BulkWriteError with code 11000 = duplicate key — safely skip those
+        if (
+          err &&
+          typeof err === "object" &&
+          "code" in err &&
+          (err as { code: number }).code === 11000
+        ) {
+          // partial insert — count what was inserted
+          const be = err as { result?: { nInserted?: number } };
+          inserted += be.result?.nInserted ?? 0;
+        } else {
+          throw err;
+        }
+      }
+
+      batchStart = batchEnd + 1;
+    }
+
+    // Safety guard against infinite loop for very large ranges
+    if (rangeSize >= 100_000) break;
+  }
+
+  return inserted;
 }
 
 // ─── Index setup (called from seed script) ───────────────────────────────────

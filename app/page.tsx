@@ -8,8 +8,19 @@ import { AuthModal } from "./components/AuthModal";
 import { FrameOverlay } from "./components/FrameOverlay";
 import { HeaderBar, type HeaderBarProps } from "./components/HeaderBar";
 import { ProfilePanel } from "./components/ProfilePanel";
-import { siteCopy, type CopyPack, type Language, type MarketingTicket, type Stat } from "./siteCopy";
-import { cartUpdatedAtMs, getCart, mergeCarts, setCart } from "@/app/cart/cartStorage";
+import {
+  MarketingTicket,
+  siteCopy,
+  type CopyPack,
+  type Language,
+  type Stat,
+} from "./siteCopy";
+import {
+  cartUpdatedAtMs,
+  getCart,
+  mergeCarts,
+  setCart,
+} from "@/app/cart/cartStorage";
 import type { SafeUser } from "@/lib/auth";
 import type { DrawSummaryPublic } from "@/lib/draws";
 
@@ -77,7 +88,8 @@ function WinnerCard({
     const canvas = canvasRef.current;
     if (!canvas || burstKey === 0) {
       const context = canvas?.getContext("2d");
-      if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height);
+      if (canvas && context)
+        context.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
 
@@ -126,8 +138,14 @@ function WinnerCard({
   }, [burstKey]);
 
   return (
-    <motion.article whileHover={{ y: -6 }} transition={{ duration: 0.18 }} onPointerEnter={onBurst}>
-      <div className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradientClass} p-[1px] shadow-lg shadow-black/35`}>
+    <motion.article
+      whileHover={{ y: -6 }}
+      transition={{ duration: 0.18 }}
+      onPointerEnter={onBurst}
+    >
+      <div
+        className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradientClass} p-[1px] shadow-lg shadow-black/35`}
+      >
         <div className="sl-winner-card-face relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f0a0c]/90 p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
           <canvas
             ref={canvasRef}
@@ -168,7 +186,9 @@ function WinnerCard({
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/8 text-[11px]">
                 🎉
               </span>
-              <span className="font-semibold text-zinc-300">Congratulations!</span>
+              <span className="font-semibold text-zinc-300">
+                Congratulations!
+              </span>
             </div>
           </div>
         </div>
@@ -215,7 +235,9 @@ function VerticalImageCarousel({
   const src = sliderImages[activeIndex];
 
   return (
-    <div className={["relative flex w-full flex-col", className ?? ""].join(" ")}>
+    <div
+      className={["relative flex w-full flex-col", className ?? ""].join(" ")}
+    >
       <div className="relative aspect-[1672/941] w-full overflow-hidden rounded-[22px] bg-black/20">
         <AnimatePresence mode="wait">
           <motion.div
@@ -245,7 +267,9 @@ function VerticalImageCarousel({
             type="button"
             onClick={() => setActiveAndRestart(index)}
             className={`h-2 cursor-pointer rounded-full transition ${
-              index === activeIndex ? "w-7 bg-amber-300" : "w-2 bg-white/25 hover:bg-white/40"
+              index === activeIndex
+                ? "w-7 bg-amber-300"
+                : "w-2 bg-white/25 hover:bg-white/40"
             }`}
             aria-label={`Show slide ${index + 1}`}
           />
@@ -281,7 +305,12 @@ function formatDrawTime(date: Date): string {
   }).format(date);
 }
 
-function Counter({ label, value, suffix, compact }: Stat & { compact?: boolean }) {
+function Counter({
+  label,
+  value,
+  suffix,
+  compact,
+}: Stat & { compact?: boolean }) {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -313,7 +342,9 @@ function Counter({ label, value, suffix, compact }: Stat & { compact?: boolean }
           {displayValue.toLocaleString("en-IN")}
           {suffix}
         </p>
-        <p className="mt-1 text-[10px] leading-snug text-zinc-400 sm:text-[11px]">{label}</p>
+        <p className="mt-1 text-[10px] leading-snug text-zinc-400 sm:text-[11px]">
+          {label}
+        </p>
       </motion.article>
     );
   }
@@ -470,8 +501,12 @@ function RightInsightColumn({
                   {active.name.slice(0, 1)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-white sm:text-xs">{active.name}</p>
-                  <p className="text-[10px] text-zinc-500 sm:text-[11px]">{active.location}</p>
+                  <p className="text-[11px] font-semibold text-white sm:text-xs">
+                    {active.name}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 sm:text-[11px]">
+                    {active.location}
+                  </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-medium text-zinc-200 sm:text-[10px]">
                   {active.tag}
@@ -490,7 +525,9 @@ function RightInsightColumn({
                 type="button"
                 onClick={() => setActiveIndex(index)}
                 className={`h-1.5 rounded-full transition sm:h-2 ${
-                  index === activeIndex ? "w-5 bg-amber-300 sm:w-6" : "w-1.5 bg-white/25 hover:bg-white/40"
+                  index === activeIndex
+                    ? "w-5 bg-amber-300 sm:w-6"
+                    : "w-1.5 bg-white/25 hover:bg-white/40"
                 }`}
                 aria-label={`Show testimonial ${index + 1}`}
               />
@@ -542,7 +579,9 @@ export default function Home() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("en");
   const currentCopy = siteCopy[language];
-  const [nextDraw, setNextDraw] = useState<Date>(() => getNextDrawTime(new Date()));
+  const [nextDraw, setNextDraw] = useState<Date>(() =>
+    getNextDrawTime(new Date()),
+  );
   const [remainingTime, setRemainingTime] = useState(0);
   const [authUser, setAuthUser] = useState<SafeUser | null>(null);
   const [authOpen, setAuthOpen] = useState(() => {
@@ -561,7 +600,12 @@ export default function Home() {
 
   // Live draws from DB
   const [liveDraws, setLiveDraws] = useState<DrawSummaryPublic[]>([]);
+  const [drawsPage, setDrawsPage] = useState(1);
   const [winnerBurst, setWinnerBurst] = useState({ image: "", key: 0 });
+
+  // Live results from DB
+  type LiveResult = { id: string; drawName: string; winningTicket: string; prize: string; winnerName: string | null; declaredAt: string };
+  const [liveResults, setLiveResults] = useState<LiveResult[]>([]);
 
   const openAuth = (mode: "signin" | "register") => {
     setAuthMode(mode);
@@ -586,7 +630,9 @@ export default function Home() {
       .catch(() => {
         if (!cancelled) setAuthUser(null);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Hydrate from server after login — do not merge a *stale* remote cart over a newer local one
@@ -595,7 +641,10 @@ export default function Home() {
     if (!authUser) return;
     let cancelled = false;
     void fetch("/api/cart", { cache: "no-store" })
-      .then(async (r) => ({ ok: r.ok, data: (await r.json()) as { cart?: unknown } }))
+      .then(async (r) => ({
+        ok: r.ok,
+        data: (await r.json()) as { cart?: unknown },
+      }))
       .then(({ ok, data }) => {
         if (cancelled || !ok || !data.cart) return;
         const remote = data.cart as ReturnType<typeof getCart>;
@@ -652,14 +701,23 @@ export default function Home() {
     };
   }, [authUser]);
 
-  // Fetch live draws from DB, fall back to static data gracefully
+  // Fetch live draws from DB
   useEffect(() => {
     fetch("/api/draws")
       .then(async (r) => {
         if (!r.ok) return;
         const data = (await r.json()) as { draws: DrawSummaryPublic[] };
-        if (data.draws.length) setLiveDraws(data.draws);
+        setLiveDraws(data.draws);
       })
+      .catch(() => {});
+  }, []);
+
+  // Fetch declared results from DB
+  useEffect(() => {
+    type Res = { results: LiveResult[] };
+    fetch("/api/results")
+      .then(async (r) => (r.ok ? ((await r.json()) as Res) : null))
+      .then((d) => { if (d?.results) setLiveResults(d.results); })
       .catch(() => {});
   }, []);
 
@@ -671,7 +729,9 @@ export default function Home() {
   const findLiveDraw = (staticName: string): DrawSummaryPublic | null => {
     const norm = staticName.toLowerCase();
     return (
-      liveDraws.find((d) => d.name.toLowerCase().includes(norm.split(" ")[0])) ?? null
+      liveDraws.find((d) =>
+        d.name.toLowerCase().includes(norm.split(" ")[0]),
+      ) ?? null
     );
   };
 
@@ -746,7 +806,7 @@ export default function Home() {
       <FrameOverlay />
 
       <main className="relative h-screen overflow-hidden">
-          <div className="flex h-full flex-col bg-[#17060d]/90 backdrop-blur-xl">
+        <div className="flex h-full flex-col bg-[#17060d]/90 backdrop-blur-xl">
           <HeaderBar {...headerBarProps} />
 
           <div className="mx-auto w-full max-w-[1800px] min-h-0 flex-1 px-4 pb-4 md:px-5 md:pb-5 lg:px-6 lg:pb-6">
@@ -763,7 +823,10 @@ export default function Home() {
                     <div className="relative flex w-full flex-col items-center gap-4">
                       <div className="relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
                         <div className="w-full">
-                          <VerticalImageCarousel className="p-0" intervalMs={3000} />
+                          <VerticalImageCarousel
+                            className="p-0"
+                            intervalMs={3000}
+                          />
                         </div>
                       </div>
 
@@ -777,7 +840,9 @@ export default function Home() {
 
                   <section className="royal-panel rounded-[24px] border border-white/10 bg-[#14070f] p-4 sm:rounded-[28px] sm:p-5">
                     <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
-                      <h2 className="text-lg font-semibold sm:text-xl">{currentCopy.popularTitle}</h2>
+                      <h2 className="text-lg font-semibold sm:text-xl">
+                        {currentCopy.popularTitle}
+                      </h2>
                       <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-zinc-300">
                         IST
                       </span>
@@ -788,79 +853,127 @@ export default function Home() {
                       </p>
                     ) : null}
 
-                    <div className="grid items-start gap-3 md:grid-cols-2">
-                      {currentCopy.tickets.map((ticket, index) => {
-                        const gradients = [
-                          "from-[#2ca7ff] to-[#6157ff]",
-                          "from-[#ff7b38] to-[#ff3d6e]",
-                          "from-[#7a5cff] to-[#c052ff]",
-                          "from-[#e0a60d] to-[#ff7b38]",
-                          "from-[#00c6ff] to-[#0072ff]",
-                          "from-[#f857a6] to-[#ff5858]",
-                          "from-[#56ab2f] to-[#a8e063]",
-                        ];
-                        const accent = gradients[index % gradients.length];
-                        const live = findLiveDraw(ticket.name);
-                        const remaining = live?.availableTickets ?? null;
-                        const total = live?.totalTickets ?? null;
-                        const pctLeft =
-                          remaining != null && total && total > 0 ? Math.max(0, Math.min(100, (remaining / total) * 100)) : null;
+                    {liveDraws.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center">
+                        <p className="text-sm font-semibold text-zinc-400">No active draws available</p>
+                        <p className="mt-1 text-xs text-zinc-600">New draws will appear here once activated by the admin.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid items-start gap-3 md:grid-cols-2">
+                          {liveDraws
+                            .slice((drawsPage - 1) * 6, drawsPage * 6)
+                            .map((draw, index) => {
+                            const gradients = [
+                              "from-[#2ca7ff] to-[#6157ff]",
+                              "from-[#ff7b38] to-[#ff3d6e]",
+                              "from-[#7a5cff] to-[#c052ff]",
+                              "from-[#e0a60d] to-[#ff7b38]",
+                              "from-[#00c6ff] to-[#0072ff]",
+                              "from-[#f857a6] to-[#ff5858]",
+                              "from-[#56ab2f] to-[#a8e063]",
+                            ];
+                            const accent = gradients[index % gradients.length];
+                            const remaining = draw.availableTickets;
+                            const total = draw.totalTickets;
+                            const pctLeft =
+                              total > 0
+                                ? Math.max(0, Math.min(100, (remaining / total) * 100))
+                                : null;
+                            const drawDate = new Date(draw.drawDate);
+                            const drawTimeLabel = `${drawDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${draw.drawTime}`;
 
-                        return (
-                          <motion.article
-                            key={ticket.name}
-                            whileHover={{ boxShadow: "0 0 28px rgba(255, 153, 0, 0.18)" }}
-                            transition={{ duration: 0.18 }}
-                            className={`group self-start rounded-3xl bg-gradient-to-r p-[2px] ${accent} transition`}
-                          >
-                            <div className="flex flex-col overflow-hidden rounded-[22px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                            <div className="sl-popular-draw-card flex flex-col bg-[#120b0f] p-3 transition-[border-radius] duration-300 ease-out sm:p-4 rounded-[22px] group-hover:rounded-t-[22px] group-hover:rounded-b-[14px]">
-                              <div className="flex items-start justify-between gap-2 sm:gap-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="sl-ticket-draw-name text-[11px] font-semibold leading-snug sm:text-xs md:text-sm">
-                                      {ticket.name}
-                                    </p>
-                                    <p className="mt-1 text-base font-bold leading-tight text-amber-300 sm:text-lg md:text-xl">
-                                      {ticket.prize}
-                                    </p>
+                            return (
+                              <motion.article
+                                key={draw.id}
+                                onClick={() => openBookPage(draw)}
+                                whileHover={{ boxShadow: "0 0 28px rgba(255, 153, 0, 0.18)" }}
+                                transition={{ duration: 0.18 }}
+                                className={`group self-start rounded-3xl bg-gradient-to-r p-[2px] ${accent} transition cursor-pointer`}
+                              >
+                                <div className="flex flex-col overflow-hidden rounded-[22px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
+                                  <div className="sl-popular-draw-card flex flex-col bg-[#120b0f] p-3 transition-[border-radius] duration-300 ease-out sm:p-4 rounded-[22px] group-hover:rounded-t-[22px] group-hover:rounded-b-[14px]">
+                                    <div className="flex items-start justify-between gap-2 sm:gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="sl-ticket-draw-name text-[11px] font-semibold leading-snug sm:text-xs md:text-sm">
+                                          {draw.name}
+                                        </p>
+                                        <p className="mt-1 text-base font-bold leading-tight text-amber-300 sm:text-lg md:text-xl">
+                                          ₹{draw.pricePerTicket.toLocaleString("en-IN")}/ticket
+                                        </p>
+                                      </div>
+                                      <div className="sl-ticket-draw-time-pill max-w-[48%] shrink-0 rounded-xl bg-white/10 px-2 py-1.5 text-right text-[9px] leading-tight text-zinc-100 sm:rounded-2xl sm:px-2.5 sm:py-2 sm:text-[10px] md:text-xs">
+                                        {drawTimeLabel}
+                                      </div>
+                                    </div>
+                                    {pctLeft != null ? (
+                                      <div className="mt-3">
+                                        <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
+                                          <span>
+                                            Only{" "}
+                                            <span className="text-amber-200">
+                                              {remaining.toLocaleString("en-IN")}
+                                            </span>{" "}
+                                            left
+                                          </span>
+                                          <span>{total.toLocaleString("en-IN")} total</span>
+                                        </div>
+                                        <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full border border-emerald-200/15 bg-gradient-to-r from-emerald-950/70 via-amber-950/50 to-red-950/60 shadow-inner shadow-black/30">
+                                          <div
+                                            className="sl-progress-fill h-full rounded-full"
+                                            style={{ width: `${pctLeft}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); openBookPage(draw); }}
+                                      className="mt-3 w-fit cursor-pointer rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-semibold text-white sm:mt-4 sm:px-4 sm:py-2 sm:text-xs"
+                                    >
+                                      {currentCopy.buyTicket}
+                                    </button>
                                   </div>
-                                  <div className="sl-ticket-draw-time-pill max-w-[48%] shrink-0 rounded-xl bg-white/10 px-2 py-1.5 text-right text-[9px] leading-tight text-zinc-100 sm:rounded-2xl sm:px-2.5 sm:py-2 sm:text-[10px] md:text-xs">
-                                    {ticket.time}
-                                  </div>
+                                  <div
+                                    className={`h-0 shrink-0 overflow-hidden bg-gradient-to-r transition-[height] duration-300 ease-out rounded-b-[22px] group-hover:h-[36px] group-hover:rounded-t-[14px] ${accent}`}
+                                    aria-hidden
+                                  />
                                 </div>
-                                {pctLeft != null ? (
-                                  <div className="mt-3">
-                                    <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
-                                      <span>
-                                        Only <span className="text-amber-200">{remaining?.toLocaleString("en-IN")}</span> left
-                                      </span>
-                                      <span>{total?.toLocaleString("en-IN")} total</span>
-                                    </div>
-                                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full border border-emerald-200/15 bg-gradient-to-r from-emerald-950/70 via-amber-950/50 to-red-950/60 shadow-inner shadow-black/30">
-                                      <div
-                                        className="sl-progress-fill h-full rounded-full"
-                                        style={{ width: `${pctLeft}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={() => bookTicket(ticket)}
-                                  className="mt-3 w-fit cursor-pointer rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-semibold text-white sm:mt-4 sm:px-4 sm:py-2 sm:text-xs"
-                                >
-                                  {currentCopy.buyTicket}
-                                </button>
-                              </div>
-                              <div
-                                className={`h-0 shrink-0 overflow-hidden bg-gradient-to-r transition-[height] duration-300 ease-out rounded-b-[22px] group-hover:h-[36px] group-hover:rounded-t-[14px] ${accent}`}
-                                aria-hidden
-                              />
-                            </div>
-                          </motion.article>
-                        );
-                      })}
-                    </div>
+                              </motion.article>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Pagination controls */}
+                        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => setDrawsPage((p) => Math.max(1, p - 1))}
+                            disabled={drawsPage === 1}
+                            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                              <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                            Previous
+                          </button>
+                          <span className="text-[11px] font-semibold text-zinc-500">
+                            Page {drawsPage} of {Math.max(1, Math.ceil(liveDraws.length / 6))}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDrawsPage((p) => Math.min(Math.max(1, Math.ceil(liveDraws.length / 6)), p + 1))}
+                            disabled={drawsPage >= Math.ceil(liveDraws.length / 6)}
+                            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Next
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                              <path d="M9 18l6-6-6-6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </section>
                 </div>
 
@@ -872,23 +985,52 @@ export default function Home() {
                   />
 
                   <section className="sl-live-results-board royal-panel min-w-0 rounded-[24px] border border-white/10 bg-[#14070f] p-4 sm:rounded-[28px] sm:p-5">
-                    <h2 className="text-lg font-semibold sm:text-xl">{currentCopy.liveResultsTitle}</h2>
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-lg font-semibold sm:text-xl">
+                        {currentCopy.liveResultsTitle}
+                      </h2>
+                      {liveResults.length > 0 && (
+                        <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Live
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
-                      {currentCopy.resultRows.map((row) => (
-                        <motion.div
-                          key={row.name}
-                          whileHover={{ x: 3 }}
-                          transition={{ duration: 0.16 }}
-                          className="sl-live-result-row flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-2.5 sm:py-3"
-                        >
-                          <span className="sl-live-result-label text-sm font-medium text-zinc-200">
-                            {row.name}
-                          </span>
-                          <span className="sl-ticket-pill rounded-full px-3 py-1 font-mono text-xs font-semibold tabular-nums shadow-sm">
-                            {formatSampleTicket(row.name)}
-                          </span>
-                        </motion.div>
-                      ))}
+                      {liveResults.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center">
+                          <p className="text-sm font-semibold text-zinc-400">No results declared yet</p>
+                          <p className="mt-1 text-xs text-zinc-600">Results will appear here after each draw.</p>
+                        </div>
+                      ) : (
+                        liveResults.map((result) => (
+                          <motion.div
+                            key={result.id}
+                            whileHover={{ x: 3 }}
+                            transition={{ duration: 0.16 }}
+                            className="sl-live-result-row flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-2.5 sm:py-3"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <span className="sl-live-result-label block truncate text-sm font-medium text-zinc-200">
+                                {result.drawName}
+                              </span>
+                              {result.winnerName && (
+                                <span className="block truncate text-[10px] text-zinc-500">
+                                  Winner: {result.winnerName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              <span className="sl-ticket-pill rounded-full px-3 py-1 font-mono text-xs font-semibold tabular-nums shadow-sm">
+                                {result.winningTicket}
+                              </span>
+                              <span className="text-[10px] font-semibold text-emerald-400">
+                                {result.prize}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))
+                      )}
                     </div>
                   </section>
 
@@ -912,7 +1054,8 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         if (!authUser) openAuth("register");
-                        else if (liveDraws.length) router.push(`/book/${liveDraws[0].id}`);
+                        else if (liveDraws.length)
+                          router.push(`/book/${liveDraws[0].id}`);
                         else setProfileOpen(true);
                       }}
                       className="sl-force-light-text mt-4 rounded-full border border-white/10 bg-[#180808] px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] sm:mt-5"
@@ -934,7 +1077,9 @@ export default function Home() {
                     <p className="sl-winners-kicker text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/70">
                       Trusted results
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold">Celebrating Our Winners</h2>
+                    <h2 className="mt-2 text-xl font-semibold">
+                      Celebrating Our Winners
+                    </h2>
                     <p className="mt-1 text-xs text-zinc-500">
                       Recent wins from verified ticket buyers.
                     </p>
@@ -960,7 +1105,11 @@ export default function Home() {
                         imageName={winner.image}
                         amount={winner.amount}
                         gradientClass={palette[index % palette.length]}
-                        burstKey={winnerBurst.image === winner.image ? winnerBurst.key : 0}
+                        burstKey={
+                          winnerBurst.image === winner.image
+                            ? winnerBurst.key
+                            : 0
+                        }
                         onBurst={() => {
                           setWinnerBurst((current) => ({
                             image: winner.image,
@@ -972,7 +1121,6 @@ export default function Home() {
                   })}
                 </div>
               </section>
-
             </section>
           </div>
         </div>

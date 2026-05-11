@@ -20,7 +20,9 @@ export type SafeUser = {
   id: string;
   name: string;
   email: string;
+  role: "user" | "admin";
   settings: UserSettings;
+  image?: string;
   createdAt: string;
 };
 
@@ -40,7 +42,9 @@ type UserDoc = {
   email: string;
   passwordHash: string;
   emailVerifiedAt: Date;
+  role: "user" | "admin";
   settings: UserSettings;
+  image?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -245,6 +249,7 @@ export async function completeRegistration({
     email,
     passwordHash,
     emailVerifiedAt: now,
+    role: "user",
     settings,
     createdAt: now,
     updatedAt: now,
@@ -260,6 +265,7 @@ export async function completeRegistration({
     id: result.insertedId.toString(),
     name,
     email,
+    role: "user",
     settings,
     createdAt: now.toISOString(),
   };
@@ -346,11 +352,14 @@ export async function getProfile(userId: string) {
 
 export async function updateProfileSettings(userId: string, input: unknown) {
   if (!input || typeof input !== "object") throw new Error("Invalid settings payload.");
-  const body = input as Partial<{ name: unknown; settings: Partial<UserSettings> }>;
+  const body = input as Partial<{ name: unknown; image: unknown; settings: Partial<UserSettings> }>;
 
   const $set: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof body.name === "string" && body.name.trim().length >= 2) {
     $set.name = body.name.trim().slice(0, 80);
+  }
+  if (typeof body.image === "string") {
+    $set.image = body.image.trim();
   }
 
   if (body.settings) {
@@ -390,17 +399,31 @@ export async function createTicketBooking(
   return toTicketBooking({ ...doc, _id: result.insertedId });
 }
 
-function toSafeUser(user: UserDoc): SafeUser {
-  if (!user._id) {
+function toSafeUser(doc: UserDoc): SafeUser {
+  if (!doc._id) {
     throw new Error("User record is missing an id.");
   }
   return {
-    id: user._id.toString(),
-    name: user.name,
-    email: user.email,
-    settings: user.settings,
-    createdAt: user.createdAt.toISOString(),
+    id: doc._id.toString(),
+    name: doc.name,
+    email: doc.email,
+    role: doc.role ?? "user",
+    settings: doc.settings ?? { language: "en", marketingEmails: false, bookingAlerts: true },
+    image: doc.image,
+    createdAt: doc.createdAt.toISOString(),
   };
+}
+
+export async function isAdmin(request: NextRequest): Promise<boolean> {
+  const user = await getSessionUser(request);
+  return user?.role === "admin";
+}
+
+export async function requireAdmin(request: NextRequest): Promise<SafeUser> {
+  const user = await getSessionUser(request);
+  if (!user) throw new Error("Authentication required.");
+  if (user.role !== "admin") throw new Error("Admin access required.");
+  return user;
 }
 
 function toTicketBooking(ticket: TicketDoc): TicketBooking {

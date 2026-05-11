@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getActiveDrawSummaries } from "@/lib/draws";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const draws = await getActiveDrawSummaries();
