@@ -5,239 +5,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthModal } from "./components/AuthModal";
-import { HeaderBar } from "./components/HeaderBar";
+import { FrameOverlay } from "./components/FrameOverlay";
+import { HeaderBar, type HeaderBarProps } from "./components/HeaderBar";
 import { ProfilePanel } from "./components/ProfilePanel";
-import { TicketBookingModal } from "./components/TicketBookingModal";
+import { siteCopy, type CopyPack, type Language, type MarketingTicket, type Stat } from "./siteCopy";
 import { cartUpdatedAtMs, getCart, mergeCarts, setCart } from "@/app/cart/cartStorage";
 import type { SafeUser } from "@/lib/auth";
 import type { DrawSummaryPublic } from "@/lib/draws";
-
-type Language = "en" | "hi";
-
-type Stat = {
-  label: string;
-  value: number;
-  suffix: string;
-};
-
-type Ticket = {
-  name: string;
-  prize: string;
-  time: string;
-};
-
-type Category = {
-  title: string;
-  subtitle: string;
-};
-
-type ResultRow = {
-  name: string;
-};
-
-type Testimonial = {
-  name: string;
-  location: string;
-  quote: string;
-  tag: string;
-};
-
-type CopyPack = {
-  navItems: string[];
-  badge: string;
-  heroTitle: string;
-  heroSubtitle: string;
-  heroDescription: string;
-  primaryCta: string;
-  secondaryCta: string;
-  signIn: string;
-  register: string;
-  popularTitle: string;
-  categoriesTitle: string;
-  liveResultsTitle: string;
-  countdownTitle: string;
-  nextDrawAt: string;
-  footerTitle: string;
-  footerDescription: string;
-  footerButton: string;
-  buyTicket: string;
-  testimonialTitle: string;
-  testimonialLabel: string;
-  testimonialHelper: string;
-  statsTitle: string;
-  testimonials: Testimonial[];
-  hrs: string;
-  mins: string;
-  secs: string;
-  menu: string[];
-  stats: Stat[];
-  tickets: Ticket[];
-  categories: Category[];
-  resultRows: ResultRow[];
-};
-
-const copy: Record<Language, CopyPack> = {
-  en: {
-    navItems: ["Home", "Jackpots", "Results", "Rewards"],
-    badge: "",
-    heroTitle: "Subhlaxmi",
-    heroSubtitle: "Kuber Ka Khajana. Dhan Varsha. Clean digital lottery experience.",
-    heroDescription:
-      "Book lottery tickets, check live draw timings, and explore premium jackpot games in one clean and easy experience.",
-    primaryCta: "Play Now",
-    secondaryCta: "Check Live Results",
-    signIn: "Sign In",
-    register: "Register",
-    popularTitle: "Popular Draws Today",
-    categoriesTitle: "Explore Categories",
-    liveResultsTitle: "Live Result Board",
-    countdownTitle: "Next Mega Draw",
-    nextDrawAt: "Next draw at",
-    footerTitle: "Fast UPI checkout and live lottery results",
-    footerDescription:
-      "Pay with UPI in seconds and follow draws, tickets, and results in one clear place.",
-    footerButton: "Create Account",
-    buyTicket: "Buy Ticket",
-    testimonialTitle: "Real wins, real stories",
-    testimonialLabel: "Trusted players",
-    testimonialHelper: "Fresh stories from verified ticket buyers across India.",
-    statsTitle: "Platform pulse",
-    testimonials: [
-      {
-        name: "Priya",
-        location: "Kochi",
-        quote:
-          "Booking was smooth and the draw timing felt clear. I love how the winner artwork builds trust before I tap buy.",
-        tag: "Verified",
-      },
-      {
-        name: "Rahul",
-        location: "Lucknow",
-        quote:
-          "The layout feels calm and readable. Small fonts on mobile still look crisp, and the countdown keeps me excited.",
-        tag: "5★ rated",
-      },
-      {
-        name: "Sneha",
-        location: "Surat",
-        quote:
-          "The testimonial section feels festive without being loud. It is the kind of polish I expect from a premium app.",
-        tag: "Happy buyer",
-      },
-    ],
-    hrs: "Hrs",
-    mins: "Min",
-    secs: "Sec",
-    menu: ["Home", "My Tickets", "Live Results", "Jackpots", "Rewards", "Support"],
-    stats: [
-      { label: "Active Players", value: 128000, suffix: "+" },
-      { label: "Crorepati Winners", value: 4486, suffix: "+" },
-      { label: "Tickets Today", value: 326000, suffix: "+" },
-    ],
-    tickets: [
-      { name: "Kuber Ratna", prize: "INR 25 Cr", time: "Tonight 9:00 PM" },
-      { name: "Shri Samridhi", prize: "INR 12 Cr", time: "Today 7:30 PM" },
-      { name: "Riddhi Siddhi", prize: "INR 8 Cr", time: "Today 8:15 PM" },
-      { name: "Dhan Laxmi Special", prize: "INR 5 Cr", time: "Tomorrow 1:00 PM" },
-      { name: "Jai Mata Di Draw", prize: "INR 1.2 Cr", time: "Tomorrow 4:30 PM" },
-      { name: "Vaibhav Laxmi", prize: "INR 2.75 Cr", time: "Friday 8:45 PM" },
-      { name: "Sone Ki Baarish", prize: "INR 4.5 Cr", time: "Sunday 9:30 PM" },
-    ],
-    categories: [
-      { title: "Bumper Draws", subtitle: "High prize pools" },
-      { title: "Daily Results", subtitle: "Fast updates" },
-      { title: "Quick Pick", subtitle: "Smart numbers" },
-      { title: "Lucky Bundles", subtitle: "Combo tickets" },
-      { title: "Refer & Earn", subtitle: "Bonus rewards" },
-    ],
-    resultRows: [
-      { name: "Kuber Ratna" },
-      { name: "Shri Samridhi" },
-      { name: "Riddhi Siddhi" },
-      { name: "Dhan Laxmi Special" },
-    ],
-  },
-  hi: {
-    navItems: ["होम", "जैकपॉट", "रिजल्ट", "रिवॉर्ड्स"],
-    badge: "",
-    heroTitle: "Subhlaxmi",
-    heroSubtitle: "कुबेर का खजाना। धन वर्षा। साफ और आधुनिक डिजिटल लॉटरी अनुभव।",
-    heroDescription:
-      "एक ही जगह पर लॉटरी टिकट बुक करें, लाइव ड्रॉ टाइमिंग देखें और प्रीमियम जैकपॉट गेम्स एक्सप्लोर करें।",
-    primaryCta: "अभी खेलें",
-    secondaryCta: "लाइव रिजल्ट देखें",
-    signIn: "साइन इन",
-    register: "रजिस्टर",
-    popularTitle: "आज के लोकप्रिय ड्रॉ",
-    categoriesTitle: "कैटेगरी एक्सप्लोर करें",
-    liveResultsTitle: "लाइव रिजल्ट बोर्ड",
-    countdownTitle: "अगला मेगा ड्रॉ",
-    nextDrawAt: "अगला ड्रॉ",
-    footerTitle: "तेज UPI चेकआउट और लाइव लॉटरी रिजल्ट",
-    footerDescription:
-      "UPI से सेकंड्स में पेमेंट करें और ड्रॉ, टिकट, रिजल्ट सब एक ही जगह साफ़ तरीके से देखें।",
-    footerButton: "अकाउंट बनाएं",
-    buyTicket: "टिकट खरीदें",
-    testimonialTitle: "असली जीत, असली कहानियां",
-    testimonialLabel: "भरोसेमंद खिलाड़ी",
-    testimonialHelper: "भारत भर के वेरिफाइड खरीदारों की ताज़ा प्रतिक्रियाएं।",
-    statsTitle: "लाइव आंकड़े",
-    testimonials: [
-      {
-        name: "प्रिया",
-        location: "कोच्चि",
-        quote:
-          "बुकिंग आसान थी और ड्रॉ टाइम साफ दिखा। विनर आर्ट देखकर भरोसा बनता है।",
-        tag: "वेरिफाइड",
-      },
-      {
-        name: "राहुल",
-        location: "लखनऊ",
-        quote:
-          "लेआउट शांत और पढ़ने में आसान है। मोबाइल पर छोटे फॉन्ट भी साफ दिखते हैं।",
-        tag: "5★",
-      },
-      {
-        name: "स्नेहा",
-        location: "सूरत",
-        quote:
-          "टेस्टिमोनियल सेक्शन उत्सव जैसा लगता है। ज़्यादा शोर के बिना प्रीमियम फील।",
-        tag: "खुश खरीदार",
-      },
-    ],
-    hrs: "घंटे",
-    mins: "मिनट",
-    secs: "सेकंड",
-    menu: ["होम", "मेरे टिकट", "लाइव रिजल्ट", "जैकपॉट", "रिवॉर्ड्स", "सपोर्ट"],
-    stats: [
-      { label: "सक्रिय खिलाड़ी", value: 128000, suffix: "+" },
-      { label: "करोड़पति विजेता", value: 4486, suffix: "+" },
-      { label: "आज के टिकट", value: 326000, suffix: "+" },
-    ],
-    tickets: [
-      { name: "कुबेर रत्न", prize: "INR 25 Cr", time: "आज रात 9:00 बजे" },
-      { name: "श्री समृद्धि", prize: "INR 12 Cr", time: "आज 7:30 बजे" },
-      { name: "रिद्धि सिद्धि", prize: "INR 8 Cr", time: "आज 8:15 बजे" },
-      { name: "धन लक्ष्मी स्पेशल", prize: "INR 5 Cr", time: "कल 1:00 बजे" },
-      { name: "जय माता दी ड्रॉ", prize: "INR 1.2 Cr", time: "कल 4:30 बजे" },
-      { name: "वैभव लक्ष्मी", prize: "INR 2.75 Cr", time: "शुक्रवार 8:45 बजे" },
-      { name: "सोने की बारिश", prize: "INR 4.5 Cr", time: "रविवार 9:30 बजे" },
-    ],
-    categories: [
-      { title: "बंपर ड्रॉ", subtitle: "बड़े प्राइज पूल" },
-      { title: "डेली रिजल्ट", subtitle: "तेज अपडेट" },
-      { title: "क्विक पिक", subtitle: "स्मार्ट नंबर" },
-      { title: "लकी बंडल", subtitle: "कॉम्बो टिकट" },
-      { title: "रेफर एंड अर्न", subtitle: "बोनस रिवॉर्ड" },
-    ],
-    resultRows: [
-      { name: "कुबेर रत्न" },
-      { name: "श्री समृद्धि" },
-      { name: "रिद्धि सिद्धि" },
-      { name: "धन लक्ष्मी स्पेशल" },
-    ],
-  },
-};
 
 const sliderImages = [
   "/slider1.png",
@@ -753,25 +527,6 @@ function RightInsightColumn({
   );
 }
 
-function FrameOverlay() {
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      <div className="royal-corner royal-corner-tl left-1 top-1 scale-[0.7] md:left-3 md:top-3 md:scale-100" />
-      <div className="royal-corner royal-corner-tr right-1 top-1 scale-[0.7] md:right-3 md:top-3 md:scale-100" />
-      <div className="royal-corner royal-corner-bl bottom-1 left-1 scale-[0.7] md:bottom-3 md:left-3 md:scale-100" />
-      <div className="royal-corner royal-corner-br bottom-1 right-1 scale-[0.7] md:bottom-3 md:right-3 md:scale-100" />
-
-      <div className="royal-knot left-2 top-2 scale-75 md:left-4 md:top-4 md:scale-100" />
-      <div className="royal-knot right-2 top-2 scale-75 md:right-4 md:top-4 md:scale-100" />
-      <div className="royal-knot bottom-2 left-2 scale-75 md:bottom-4 md:left-4 md:scale-100" />
-      <div className="royal-knot bottom-2 right-2 scale-75 md:bottom-4 md:right-4 md:scale-100" />
-
-      <div className="royal-knot left-1 top-1/2 hidden -translate-y-1/2 md:left-3 md:block" />
-      <div className="royal-knot right-1 top-1/2 hidden -translate-y-1/2 md:right-3 md:block" />
-    </div>
-  );
-}
-
 function PanelCorners() {
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -786,7 +541,7 @@ function PanelCorners() {
 export default function Home() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("en");
-  const currentCopy = copy[language];
+  const currentCopy = siteCopy[language];
   const [nextDraw, setNextDraw] = useState<Date>(() => getNextDrawTime(new Date()));
   const [remainingTime, setRemainingTime] = useState(0);
   const [authUser, setAuthUser] = useState<SafeUser | null>(null);
@@ -806,9 +561,6 @@ export default function Home() {
 
   // Live draws from DB
   const [liveDraws, setLiveDraws] = useState<DrawSummaryPublic[]>([]);
-  // Ticket booking modal state
-  const [ticketModalDraw, setTicketModalDraw] = useState<DrawSummaryPublic | null>(null);
-  const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [winnerBurst, setWinnerBurst] = useState({ image: "", key: 0 });
 
   const openAuth = (mode: "signin" | "register") => {
@@ -911,9 +663,8 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const openTicketModal = (draw: DrawSummaryPublic) => {
-    setTicketModalDraw(draw);
-    setTicketModalOpen(true);
+  const openBookPage = (draw: DrawSummaryPublic) => {
+    router.push(`/book/${draw.id}`);
   };
 
   // For static draw cards, find matching DB draw by name fragment
@@ -924,11 +675,11 @@ export default function Home() {
     );
   };
 
-  const bookTicket = (ticket: Ticket) => {
+  const bookTicket = (ticket: MarketingTicket) => {
     setBookingMessage("");
     const liveDraw = findLiveDraw(ticket.name);
     if (liveDraw) {
-      openTicketModal(liveDraw);
+      openBookPage(liveDraw);
     } else {
       // No DB draw yet – prompt auth or show info
       if (!authUser) {
@@ -972,6 +723,19 @@ export default function Home() {
     return { hours, minutes, seconds };
   }, [remainingTime]);
 
+  const headerBarProps: HeaderBarProps = {
+    heroTitle: currentCopy.heroTitle,
+    menu: currentCopy.menu,
+    signIn: currentCopy.signIn,
+    register: currentCopy.register,
+    language,
+    onLanguageChange: setLanguage,
+    authUser,
+    onSignIn: () => openAuth("signin"),
+    onRegister: () => openAuth("register"),
+    onProfileClick: () => setProfileOpen(true),
+  };
+
   return (
     <div className="royal-surface royal-grid royal-frame relative min-h-screen overflow-hidden bg-[#12040c] text-white">
       <div className="pointer-events-none absolute inset-0">
@@ -983,18 +747,7 @@ export default function Home() {
 
       <main className="relative h-screen overflow-hidden">
           <div className="flex h-full flex-col bg-[#17060d]/90 backdrop-blur-xl">
-          <HeaderBar
-            heroTitle={currentCopy.heroTitle}
-            menu={currentCopy.menu}
-            signIn={currentCopy.signIn}
-            register={currentCopy.register}
-            language={language}
-            onLanguageChange={setLanguage}
-            authUser={authUser}
-            onSignIn={() => openAuth("signin")}
-            onRegister={() => openAuth("register")}
-            onProfileClick={() => setProfileOpen(true)}
-          />
+          <HeaderBar {...headerBarProps} />
 
           <div className="mx-auto w-full max-w-[1800px] min-h-0 flex-1 px-4 pb-4 md:px-5 md:pb-5 lg:px-6 lg:pb-6">
             <section className="hide-scrollbar h-full overflow-y-auto p-5 md:p-7">
@@ -1159,7 +912,7 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         if (!authUser) openAuth("register");
-                        else if (liveDraws.length) openTicketModal(liveDraws[0]);
+                        else if (liveDraws.length) router.push(`/book/${liveDraws[0].id}`);
                         else setProfileOpen(true);
                       }}
                       className="sl-force-light-text mt-4 rounded-full border border-white/10 bg-[#180808] px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] sm:mt-5"
@@ -1241,16 +994,6 @@ export default function Home() {
         user={authUser}
         onClose={() => setProfileOpen(false)}
         onUserUpdated={updateAuthedUser}
-      />
-      <TicketBookingModal
-        draw={ticketModalDraw}
-        user={authUser}
-        open={ticketModalOpen}
-        onClose={() => setTicketModalOpen(false)}
-        onNeedAuth={() => {
-          setTicketModalOpen(false);
-          openAuth("signin");
-        }}
       />
     </div>
   );
