@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
-export type AdminSection = "overview" | "users" | "draws" | "results";
+export type AdminSection = "overview" | "users" | "draws" | "results" | "blog";
 
 const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
   {
@@ -45,6 +45,16 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = 
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+      </svg>
+    ),
+  },
+  {
+    id: "blog",
+    label: "Blog",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
       </svg>
     ),
   },

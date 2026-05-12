@@ -114,7 +114,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     hrs: "Hrs",
     mins: "Min",
     secs: "Sec",
-    menu: ["Home", "My Tickets", "Live Results", "Jackpots", "Rewards", "Support"],
+    menu: ["Home", "My Tickets", "Live Results", "Jackpots", "Rewards", "Support", "Blog"],
     stats: [
       { label: "Active Players", value: 128000, suffix: "+" },
       { label: "Crorepati Winners", value: 4486, suffix: "+" },

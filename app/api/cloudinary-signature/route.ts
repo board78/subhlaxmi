@@ -10,14 +10,24 @@ export async function POST(request: NextRequest) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     if (!apiSecret) return jsonError("Cloudinary secret not configured on server.", 500);
 
+    // Read optional folder from request body
+    let folder = "blog_thumbnails";
+    try {
+      const body = await request.json() as { folder?: string };
+      if (body.folder) folder = body.folder;
+    } catch {
+      // no body is fine, use default folder
+    }
+
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // According to Cloudinary docs, signature is a SHA-1 hash of parameters sorted alphabetically.
-    // We are only sending 'timestamp'.
-    const signatureString = `timestamp=${timestamp}${apiSecret}`;
+    // Cloudinary signature: ALL upload params (except file, api_key, resource_type, type)
+    // must be sorted alphabetically and concatenated as key=value pairs, then append secret.
+    const paramsToSign = [`folder=${folder}`, `timestamp=${timestamp}`].sort().join("&");
+    const signatureString = `${paramsToSign}${apiSecret}`;
     const signature = crypto.createHash("sha1").update(signatureString).digest("hex");
 
-    return NextResponse.json({ signature, timestamp });
+    return NextResponse.json({ signature, timestamp, folder });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Failed to generate signature.");
   }

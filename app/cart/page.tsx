@@ -17,15 +17,32 @@ import type { SafeUser } from "@/lib/auth";
 
 const TICKET_PREVIEW = 12;
 
-type CashfreeCheckoutResult = { error?: { message?: string }; redirect?: boolean };
+/* ── Razorpay types ─────────────────────────────────────────── */
+type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: { name: string; email: string };
+  theme: { color: string };
+  handler: (response: RazorpayPaymentResponse) => void;
+  modal: { ondismiss: () => void };
+};
+
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
 
 declare global {
   interface Window {
-    Cashfree?: (config: { mode: "sandbox" | "production" }) => {
-      checkout: (options: { paymentSessionId: string; returnUrl: string }) => Promise<CashfreeCheckoutResult>;
-    };
+    Razorpay: new (options: RazorpayOptions) => { open: () => void };
   }
 }
+/* ─────────────────────────────────────────────────────────── */
 
 function formatMoney(amount: number) {
   return amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,7 +55,9 @@ export default function CartPage() {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [error, setError] = useState("");
   const [expandedItem, setExpandedItem] = useState<CartTicketItem | null>(null);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
+  /* ── Auth check ── */
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -54,6 +73,7 @@ export default function CartPage() {
     checkAuth();
   }, []);
 
+  /* ── Cart sync ── */
   useEffect(() => {
     const sync = () => setCart(getCart());
     window.addEventListener("subhlaxmi_cart_updated", sync);
@@ -64,6 +84,7 @@ export default function CartPage() {
     };
   }, []);
 
+  /* ── Escape key for modal ── */
   useEffect(() => {
     if (!expandedItem) return;
     const onKey = (e: KeyboardEvent) => {
@@ -80,6 +101,7 @@ export default function CartPage() {
     }
   }, [cart.items, expandedItem]);
 
+  /* ── Totals ── */
   const totals = useMemo(() => {
     const gstRate = 0.18;
     const subtotal = cart.items.reduce((sum, item) => sum + item.ticketNumbers.length * item.pricePerTicket, 0);
@@ -89,10 +111,12 @@ export default function CartPage() {
     return { subtotal, gst, grandTotal, totalTickets };
   }, [cart.items]);
 
+  /* ── Razorpay Checkout ── */
   const startCheckout = async () => {
     setError("");
     if (!cart.items.length) return;
-    if (!window.Cashfree) {
+
+    if (!razorpayLoaded || !window.Razorpay) {
       const msg = "Payment SDK not loaded. Please refresh and try again.";
       setError(msg);
       toast.error("Payment SDK not ready", { description: msg });
@@ -101,44 +125,79 @@ export default function CartPage() {
 
     setLoadingCheckout(true);
     try {
-      const res = await fetch("/api/payments/cashfree/create-order", {
+      /* 1. Create order on server */
+      const res = await fetch("/api/payments/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cart }),
       });
+
       if (res.status === 401) {
         window.location.href = `/?auth=signin&next=${encodeURIComponent("/cart")}`;
         return;
       }
-      const data = (await res.json()) as { payment_session_id?: string; order_id?: string; error?: string; mode?: "sandbox" | "production" };
-      if (!res.ok || !data.payment_session_id || !data.order_id) {
+
+      const data = (await res.json()) as {
+        order_id?: string;
+        amount?: number;
+        currency?: string;
+        key_id?: string;
+        user?: { name: string; email: string };
+        error?: string;
+      };
+
+      if (!res.ok || !data.order_id || !data.key_id) {
         throw new Error(data.error ?? "Unable to create payment order.");
       }
 
-      const mode: "sandbox" | "production" = data.mode ?? "sandbox";
-      const cashfree = window.Cashfree({ mode });
-      const returnUrl = `${window.location.origin}/payment/cashfree?order_id={order_id}`;
-      const result = await cashfree.checkout({
-        paymentSessionId: data.payment_session_id,
-        returnUrl,
+      /* 2. Open Razorpay checkout */
+      const rzp = new window.Razorpay({
+        key: data.key_id,
+        amount: data.amount!,
+        currency: data.currency ?? "INR",
+        name: "Subhlaxmi Lottery",
+        description: `${totals.totalTickets} ticket${totals.totalTickets > 1 ? "s" : ""}`,
+        order_id: data.order_id,
+        prefill: {
+          name: data.user?.name ?? user?.name ?? "",
+          email: data.user?.email ?? user?.email ?? "",
+        },
+        theme: { color: "#b45309" },
+        handler: async (response: RazorpayPaymentResponse) => {
+          /* 3. On payment success → verify on server */
+          try {
+            sessionStorage.setItem("rzp_payment_result", JSON.stringify(response));
+            router.push("/payment/razorpay");
+          } catch {
+            toast.error("Redirect failed. Please visit your profile to confirm booking.");
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoadingCheckout(false);
+            toast.info("Payment cancelled.");
+          },
+        },
       });
 
-      if (result?.error?.message) {
-        setError(result.error.message);
-        toast.error("Payment could not open", { description: result.error.message });
-      }
+      rzp.open();
     } catch (caught) {
       const msg = caught instanceof Error ? caught.message : "Checkout failed.";
       setError(msg);
       toast.error("Checkout failed", { description: msg });
-    } finally {
       setLoadingCheckout(false);
     }
+    /* Note: setLoadingCheckout(false) is also called in modal.ondismiss and handler */
   };
 
   return (
     <div className="royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" strategy="afterInteractive" />
+      {/* Razorpay SDK */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => setRazorpayLoaded(true)}
+      />
 
       <Navbar
         user={user}
@@ -280,7 +339,7 @@ export default function CartPage() {
             </div>
 
             {error ? (
-              <p className="sl-cart-error mt-4 rounded-2xl px-4 py-3 text-sm leading-snug">
+              <p className="sl-cart-error mt-4 rounded-2xl bg-red-950/30 px-4 py-3 text-sm leading-snug text-red-300">
                 {error}
               </p>
             ) : null}
@@ -294,13 +353,21 @@ export default function CartPage() {
               {loadingCheckout ? "Opening payment…" : "Buy & Pay Securely"}
             </button>
 
-            <p className="mt-3 text-[11px] leading-5 text-zinc-500">
+            {/* Test mode badge */}
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                🧪 Razorpay Test Mode
+              </span>
+            </div>
+
+            <p className="mt-2 text-[11px] leading-5 text-zinc-500">
               After payment, your ticket booking will appear in your profile history.
             </p>
           </aside>
         </div>
       </div>
 
+      {/* Expanded tickets modal */}
       {expandedItem ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"

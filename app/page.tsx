@@ -36,22 +36,7 @@ const sliderImages = [
   "/slider10.png",
 ] as const;
 
-const winners = [
-  { image: "devendra j bansal.jpeg", amount: "₹1 Lakh" },
-  { image: "nazir j balsara.jpeg", amount: "₹1 Lakh" },
-  { image: "magnesh y pawar.jpeg", amount: "₹5 Lakhs" },
-  { image: "krushmi y vira.jpeg", amount: "₹1 Lakh" },
-  { image: "vikash vishwakarma.jpeg", amount: "₹2 Lakhs" },
-] as const;
 
-function formatWinnerName(fileName: string): string {
-  const baseName = fileName.replace(/\.[^/.]+$/, "");
-  return baseName
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 function hashString(s: string): number {
   let h = 0;
@@ -69,19 +54,20 @@ function formatSampleTicket(seed: string): string {
 }
 
 function WinnerCard({
-  imageName,
+  winnerName,
+  imageUrl,
   amount,
   gradientClass,
   burstKey,
   onBurst,
 }: {
-  imageName: string;
+  winnerName: string;
+  imageUrl: string | null;
   amount: string;
   gradientClass: string;
   burstKey: number;
   onBurst: () => void;
 }) {
-  const winnerName = formatWinnerName(imageName);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -171,13 +157,18 @@ function WinnerCard({
 
             <div className="mt-5 flex w-full items-center justify-center">
               <div className="relative h-28 w-28 overflow-hidden rounded-full border border-white/15 bg-white/5 shadow-[0_0_0_6px_rgba(251,191,36,0.06)]">
-                <Image
-                  src={`/winner_image/${imageName}`}
-                  alt={`${winnerName} winner image`}
-                  width={112}
-                  height={112}
-                  className="h-full w-full object-cover"
-                />
+                {imageUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={imageUrl}
+                    alt={`${winnerName} winner image`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 text-3xl font-bold text-white shadow-inner">
+                    {winnerName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.22),transparent_55%)]" />
               </div>
             </div>
@@ -604,7 +595,7 @@ export default function Home() {
   const [winnerBurst, setWinnerBurst] = useState({ image: "", key: 0 });
 
   // Live results from DB
-  type LiveResult = { id: string; drawName: string; winningTicket: string; prize: string; winnerName: string | null; declaredAt: string };
+  type LiveResult = { id: string; drawName: string; winningTicket: string; prize: string; winnerName: string | null; winnerImage: string | null; declaredAt: string };
   const [liveResults, setLiveResults] = useState<LiveResult[]>([]);
 
   const openAuth = (mode: "signin" | "register") => {
@@ -1050,18 +1041,15 @@ export default function Home() {
                         {currentCopy.footerDescription}
                       </p>
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!authUser) openAuth("register");
-                        else if (liveDraws.length)
-                          router.push(`/book/${liveDraws[0].id}`);
-                        else setProfileOpen(true);
-                      }}
-                      className="sl-force-light-text mt-4 rounded-full border border-white/10 bg-[#180808] px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] sm:mt-5"
-                    >
-                      {currentCopy.footerButton}
-                    </button>
+                    {!authUser && (
+                      <button
+                        type="button"
+                        onClick={() => openAuth("signin")}
+                        className="sl-force-light-text mt-4 rounded-full border border-white/10 bg-[#180808] px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] sm:mt-5"
+                      >
+                        {currentCopy.footerButton}
+                      </button>
+                    )}
                   </motion.section>
                 </div>
               </div>
@@ -1085,40 +1073,49 @@ export default function Home() {
                     </p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
-                    {winners.length} winners
+                    {liveResults.filter(r => r.winnerName).length} winners
                   </span>
                 </div>
 
                 <div className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  {winners.map((winner, index) => {
-                    const palette = [
-                      "from-amber-400/30 to-orange-500/25",
-                      "from-cyan-400/25 to-blue-500/25",
-                      "from-emerald-400/25 to-lime-500/20",
-                      "from-fuchsia-400/25 to-purple-500/25",
-                      "from-sky-400/25 to-teal-500/20",
-                    ];
-
-                    return (
-                      <WinnerCard
-                        key={winner.image}
-                        imageName={winner.image}
-                        amount={winner.amount}
-                        gradientClass={palette[index % palette.length]}
-                        burstKey={
-                          winnerBurst.image === winner.image
-                            ? winnerBurst.key
-                            : 0
-                        }
-                        onBurst={() => {
-                          setWinnerBurst((current) => ({
-                            image: winner.image,
-                            key: current.key + 1,
-                          }));
-                        }}
-                      />
-                    );
-                  })}
+                  {liveResults
+                    .filter((r) => r.winnerName)
+                    .slice(0, 5) // Show top 5 winners
+                    .map((winner, index) => {
+                      const palette = [
+                        "from-amber-400/30 to-orange-500/25",
+                        "from-cyan-400/25 to-blue-500/25",
+                        "from-emerald-400/25 to-lime-500/20",
+                        "from-fuchsia-400/25 to-purple-500/25",
+                        "from-sky-400/25 to-teal-500/20",
+                      ];
+                      return (
+                        <WinnerCard
+                          key={winner.id}
+                          winnerName={winner.winnerName!}
+                          imageUrl={winner.winnerImage}
+                          amount={winner.prize}
+                          gradientClass={palette[index % palette.length]}
+                          burstKey={
+                            winnerBurst.image === winner.id
+                              ? winnerBurst.key
+                              : 0
+                          }
+                          onBurst={() => {
+                            setWinnerBurst((current) => ({
+                              image: winner.id,
+                              key: current.key + 1,
+                            }));
+                          }}
+                        />
+                      );
+                    })}
+                  {liveResults.filter(r => r.winnerName).length === 0 && (
+                    <div className="col-span-full py-16 text-center">
+                      <p className="text-3xl">🏆</p>
+                      <p className="mt-4 text-sm text-zinc-400">Winner results will appear here soon.</p>
+                    </div>
+                  )}
                 </div>
               </section>
             </section>

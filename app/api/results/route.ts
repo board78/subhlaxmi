@@ -12,9 +12,24 @@ export async function GET() {
     const db = await getDb();
     const results = await db
       .collection("draw_results")
-      .find({})
-      .sort({ declaredAt: -1 })
-      .limit(20)
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "winnerUserId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        { $sort: { declaredAt: -1 } },
+        { $limit: 20 }
+      ])
       .toArray();
 
     return NextResponse.json({
@@ -24,6 +39,7 @@ export async function GET() {
         winningTicket: r.winningTicket as string,
         prize: r.prize as string,
         winnerName: (r.winnerName as string | null) ?? null,
+        winnerImage: r.user?.image || null,
         declaredAt: (r.declaredAt as Date).toISOString(),
       })),
     });

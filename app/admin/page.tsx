@@ -8,6 +8,7 @@ import { OverviewStats } from "./components/OverviewStats";
 import { UserManagement } from "./components/UserManagement";
 import { DrawManagement } from "./components/DrawManagement";
 import { ResultsManagement } from "./components/ResultsManagement";
+import { BlogManagement } from "./components/BlogManagement";
 
 type AuthUser = { name: string; email: string; role: string };
 
@@ -29,6 +30,7 @@ export default function AdminPage() {
     users: <UserManagement />,
     draws: <DrawManagement />,
     results: <ResultsManagement />,
+    blog: <BlogManagement />,
   };
 
   return (

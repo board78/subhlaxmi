@@ -130,16 +130,19 @@ export function HeaderBar({
 
             <div className="hide-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-8 pt-4">
               <nav className="flex flex-col gap-1" aria-label="Main">
-                {menu.map((item, index) => (
-                  <a
-                    key={item}
-                    href={index === 0 ? "/" : "#"}
-                    className={navLinkClass(index, true)}
-                    onClick={closeDrawer}
-                  >
-                    {item}
-                  </a>
-                ))}
+                {menu.map((item, index) => {
+                  const href = index === 0 ? "/" : item === "Blog" ? "/blog" : "#";
+                  return (
+                    <a
+                      key={item}
+                      href={href}
+                      className={navLinkClass(index, true)}
+                      onClick={closeDrawer}
+                    >
+                      {item}
+                    </a>
+                  );
+                })}
               </nav>
 
               <div className="mt-8">
@@ -293,15 +296,18 @@ export function HeaderBar({
             </Link>
 
             <nav className="flex items-center gap-2 text-xs font-semibold text-zinc-200" aria-label="Main">
-              {menu.map((item, index) => (
-                <a
-                  key={item}
-                  href={index === 0 ? "/" : "#"}
-                  className={navLinkClass(index, false)}
-                >
-                  {item}
-                </a>
-              ))}
+              {menu.map((item, index) => {
+                const href = index === 0 ? "/" : item === "Blog" ? "/blog" : "#";
+                return (
+                  <a
+                    key={item}
+                    href={href}
+                    className={navLinkClass(index, false)}
+                  >
+                    {item}
+                  </a>
+                );
+              })}
             </nav>
           </div>
 
