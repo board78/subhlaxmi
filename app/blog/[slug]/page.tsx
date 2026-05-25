@@ -62,7 +62,7 @@ export default function BlogPostPage() {
   }) : "";
 
   return (
-    <div className="royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="sl-blog-page royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <Navbar
         user={user}
         onAuthChange={(u) => { setUser(u); if (!u) router.push("/"); }}
@@ -181,12 +181,13 @@ export default function BlogPostPage() {
 
       <style>{`
         .blog-content {
-          color: #d4d4d8;
+          color: var(--foreground);
           line-height: 1.8;
           font-size: 0.975rem;
+          opacity: 0.92;
         }
         .blog-content h1, .blog-content h2, .blog-content h3, .blog-content h4 {
-          color: #f9fafb;
+          color: var(--foreground);
           font-weight: 700;
           margin-top: 2rem;
           margin-bottom: 0.75rem;
@@ -204,12 +205,12 @@ export default function BlogPostPage() {
           border-left: 3px solid #f59e0b;
           padding-left: 1rem;
           margin: 1.5rem 0;
-          color: #a1a1aa;
+          color: var(--muted);
           font-style: italic;
         }
         .blog-content code {
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 4px;
           padding: 0.1em 0.4em;
           font-size: 0.875em;
@@ -217,7 +218,7 @@ export default function BlogPostPage() {
         }
         .blog-content pre {
           background: #0d0609;
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
           padding: 1.25rem;
           overflow-x: auto;
@@ -227,7 +228,7 @@ export default function BlogPostPage() {
           background: none;
           border: none;
           padding: 0;
-          color: #e4e4e7;
+          color: inherit;
         }
         .blog-content img {
           border-radius: 12px;
@@ -236,23 +237,23 @@ export default function BlogPostPage() {
         }
         .blog-content hr {
           border: none;
-          border-top: 1px solid rgba(255,255,255,0.1);
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
           margin: 2rem 0;
         }
-        .blog-content strong { color: #f9fafb; }
+        .blog-content strong { color: var(--foreground); }
         .blog-content table {
           width: 100%;
           border-collapse: collapse;
           margin: 1.5rem 0;
         }
         .blog-content th, .blog-content td {
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           padding: 0.5rem 0.75rem;
           text-align: left;
         }
         .blog-content th {
-          background: rgba(255,255,255,0.05);
-          color: #f9fafb;
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--foreground);
           font-weight: 600;
         }
       `}</style>

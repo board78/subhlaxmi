@@ -97,29 +97,19 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
     setError("");
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "subhlaxmi_preset";
 
-    if (!cloudName || !apiKey) {
-      setError("Cloudinary configuration missing. Please add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, NEXT_PUBLIC_CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file.");
+    if (!cloudName) {
+      setError("Cloudinary configuration missing. Please add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME to your .env file.");
       setUploadingImage(false);
       return;
     }
 
     try {
-      // 1. Fetch signature from backend
-      const sigRes = await fetch("/api/cloudinary-signature", { method: "POST" });
-      if (!sigRes.ok) {
-        const errorData = await sigRes.json();
-        throw new Error(errorData.error || "Failed to get upload signature.");
-      }
-      const { signature, timestamp } = await sigRes.json();
-
-      // 2. Upload file to Cloudinary with signature
+      // Upload file directly to Cloudinary using Unsigned Upload Preset
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", timestamp.toString());
-      formData.append("signature", signature);
+      formData.append("upload_preset", uploadPreset);
 
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: "POST",
@@ -134,7 +124,7 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
       const data = await res.json();
       const imageUrl = data.secure_url;
 
-      // 3. Save new image URL to database
+      // Save new image URL to database
       const profileData = await fetchJson<ProfilePayload>("/api/profile", {
         method: "PATCH",
         body: JSON.stringify({ image: imageUrl }),

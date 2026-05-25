@@ -80,6 +80,29 @@ export type BookingResult = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toDrawPublic(doc: DrawDoc): DrawPublic {
+  let status = doc.status;
+
+  // Auto-close logic: if status is active/upcoming but draw time has passed
+  if (status === "active" || status === "upcoming") {
+    try {
+      const drawDate = new Date(doc.drawDate);
+      const timeStr = (doc.drawTime || "00:00").toLowerCase();
+      let [hours, minutes] = timeStr.replace(/[ap]m/, "").split(":").map(Number);
+
+      if (timeStr.includes("pm") && hours < 12) hours += 12;
+      if (timeStr.includes("am") && hours === 12) hours = 0;
+
+      const drawDateTime = new Date(drawDate);
+      drawDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+
+      if (new Date() > drawDateTime) {
+        status = "closed";
+      }
+    } catch (err) {
+      console.error("Error parsing draw time for auto-close:", err);
+    }
+  }
+
   return {
     id: doc._id.toString(),
     name: doc.name,
@@ -91,7 +114,7 @@ function toDrawPublic(doc: DrawDoc): DrawPublic {
     ticketPrefix: doc.ticketPrefix,
     ticketRangeStart: doc.ticketRangeStart,
     ticketRangeEnd: doc.ticketRangeEnd,
-    status: doc.status,
+    status: status,
   };
 }
 
@@ -112,7 +135,7 @@ export async function getActiveDraws(): Promise<DrawPublic[]> {
   const db = await getDb();
   const draws = await db
     .collection<DrawDoc>("draws")
-    .find({ status: { $in: ["active", "upcoming"] } })
+    .find({ status: { $in: ["active", "upcoming", "closed"] } })
     .sort({ drawDate: 1 })
     .toArray();
   return draws.map(toDrawPublic);
@@ -122,7 +145,7 @@ export async function getActiveDrawSummaries(): Promise<DrawSummaryPublic[]> {
   const db = await getDb();
   const draws = await db
     .collection<DrawDoc>("draws")
-    .find({ status: { $in: ["active", "upcoming"] } })
+    .find({ status: { $in: ["active", "upcoming", "closed"] } })
     .sort({ drawDate: 1 })
     .toArray();
 

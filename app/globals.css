@@ -31,7 +31,7 @@
   --panel-strong: rgba(255, 255, 255, 0.95);
   --panel-border: rgba(212, 175, 55, 0.25);
   --muted: rgba(92, 57, 38, 0.7);
-  --royal-surface-bg: 
+  --royal-surface-bg:
     linear-gradient(135deg, #f8f5f0 0%, #f5f0e8 100%);
 }
 
@@ -272,7 +272,7 @@ input[type="reset"]:disabled {
   color: #44403c !important;
 }
 
-:root[data-theme="light"] header nav a.text-white {
+:root[data-theme="light"] header nav a.text-white:not([class*="bg-"]) {
   color: #1c1917 !important;
 }
 
@@ -303,7 +303,16 @@ input[type="reset"]:disabled {
 :root[data-theme="light"] [class*="bg-white/12"] *,
 :root[data-theme="light"] [class*="bg-white/10"] *,
 :root[data-theme="light"] [class*="bg-white/8"] *,
-:root[data-theme="light"] [class*="bg-white/5"] * {
+:root[data-theme="light"] [class*="bg-white/5"] *,
+:root[data-theme="light"] [class*="bg-amber-500"] *,
+:root[data-theme="light"] [class*="bg-amber-600"] *,
+:root[data-theme="light"] [class*="bg-orange-500"] * {
+  color: white !important;
+}
+
+:root[data-theme="light"] [class*="bg-amber-500"],
+:root[data-theme="light"] [class*="bg-amber-600"],
+:root[data-theme="light"] [class*="bg-orange-500"] {
   color: white !important;
 }
 
@@ -324,6 +333,12 @@ input[type="reset"]:disabled {
 :root[data-theme="light"] [class*="hover:bg-white/10"]:hover,
 :root[data-theme="light"] [class*="hover:bg-white/12"]:hover {
   background: linear-gradient(to right, #b45309, #c2410c) !important;
+  color: white !important;
+}
+
+:root[data-theme="light"] [class*="hover:bg-white/5"]:hover *,
+:root[data-theme="light"] [class*="hover:bg-white/10"]:hover *,
+:root[data-theme="light"] [class*="hover:bg-white/12"]:hover * {
   color: white !important;
 }
 
@@ -593,6 +608,7 @@ input[type="reset"]:disabled {
 :root[data-theme="light"] .sl-mega-countdown .sl-countdown-foot {
   color: #44403c !important;
 }
+
 :root[data-theme="light"] .sl-upi-promo.royal-panel {
   background: linear-gradient(115deg, #7c2d12, #9a3412 42%, #c2410c 78%, #ea580c) !important;
   border-color: rgba(251, 146, 60, 0.48) !important;
@@ -765,7 +781,8 @@ input[type="reset"]:disabled {
 
 /* Home: popular draw cards — ticket title (zinc-100 on dark face, zinc-600 in light mode) */
 .sl-popular-draw-card .sl-ticket-draw-name {
-  color: #f4f4f5; /* zinc-100 */
+  color: #f4f4f5;
+  /* zinc-100 */
 }
 
 :root[data-theme="light"] .sl-popular-draw-card {
@@ -773,7 +790,8 @@ input[type="reset"]:disabled {
 }
 
 :root[data-theme="light"] .sl-popular-draw-card .sl-ticket-draw-name {
-  color: #52525b !important; /* zinc-600 */
+  color: #52525b !important;
+  /* zinc-600 */
 }
 
 :root[data-theme="light"] .sl-popular-draw-card .text-zinc-500 {
@@ -1045,6 +1063,7 @@ input[type="reset"]:disabled {
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-50%);
   }
@@ -1070,7 +1089,7 @@ input[type="reset"]:disabled {
 
 /* Language switch: dark “thumb” in light mode — must live in utilities layer to beat Tailwind `bg-white`. */
 @layer utilities {
-  :root[data-theme="light"] header .sl-lang-switch > button.sl-lang-active {
+  :root[data-theme="light"] header .sl-lang-switch>button.sl-lang-active {
     background-color: #1c1917 !important;
     background-image: none !important;
     color: #fafaf9 !important;
@@ -1078,10 +1097,307 @@ input[type="reset"]:disabled {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
   }
 
-  :root[data-theme="light"] header .sl-lang-switch > button.sl-lang-inactive {
+  :root[data-theme="light"] header .sl-lang-switch>button.sl-lang-inactive {
     color: #57534e !important;
     background-color: transparent !important;
     background-image: none !important;
   }
 }
+/* --- Blog Pages (Light Mode) -------------------------------------------------- */
 
+:root[data-theme="light"] .sl-blog-page h1,
+:root[data-theme="light"] .sl-blog-page h2,
+:root[data-theme="light"] .sl-blog-page h3 {
+  color: #1c1917 !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-white {
+  color: #1c1917 !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-100 {
+  color: #27272a !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-200 {
+  color: #3f3f46 !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-300 {
+  color: #52525b !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-400 {
+  color: #71717a !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-500 {
+  color: #57534e !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .border-white\/8,
+:root[data-theme="light"] .sl-blog-page .border-white\/10,
+:root[data-theme="light"] .sl-blog-page .border-white\/12 {
+  border-color: rgba(146, 64, 14, 0.12) !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .bg-white\/5,
+:root[data-theme="light"] .sl-blog-page .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 2px 12px rgba(146, 64, 14, 0.05);
+}
+
+:root[data-theme="light"] .sl-blog-page [class*="bg-[#14070f]"] {
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 40px rgba(146, 64, 14, 0.06);
+}
+
+:root[data-theme="light"] .sl-blog-page input {
+  color: #1c1917 !important;
+}
+
+:root[data-theme="light"] .sl-blog-page input::placeholder {
+  color: #a1a1aa !important;
+}
+
+/* Blog Content rendering overrides for Light Mode */
+:root[data-theme="light"] .blog-content {
+  color: #3f3f46 !important;
+}
+
+:root[data-theme="light"] .blog-content h1,
+:root[data-theme="light"] .blog-content h2,
+:root[data-theme="light"] .blog-content h3,
+:root[data-theme="light"] .blog-content h4,
+:root[data-theme="light"] .blog-content strong {
+  color: #18181b !important;
+}
+
+:root[data-theme="light"] .blog-content blockquote {
+  color: #52525b !important;
+  background: rgba(251, 191, 36, 0.05) !important;
+  border-left-color: #f59e0b !important;
+}
+
+:root[data-theme="light"] .blog-content code {
+  background: rgba(146, 64, 14, 0.06) !important;
+  border-color: rgba(146, 64, 14, 0.1) !important;
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .blog-content pre {
+  background: #f8fafc !important;
+  border: 1px solid rgba(146, 64, 14, 0.12) !important;
+}
+
+:root[data-theme="light"] .blog-content pre code {
+  color: #334155 !important;
+  background: none !important;
+  border: none !important;
+}
+
+:root[data-theme="light"] .blog-content hr {
+  border-top-color: rgba(146, 64, 14, 0.1) !important;
+}
+
+:root[data-theme="light"] .blog-content table, 
+:root[data-theme="light"] .blog-content th, 
+:root[data-theme="light"] .blog-content td {
+  border-color: rgba(146, 64, 14, 0.1) !important;
+}
+
+:root[data-theme="light"] .blog-content th {
+  background: rgba(146, 64, 14, 0.04) !important;
+  color: #18181b !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .text-zinc-600 {
+  color: #52525b !important;
+}
+
+:root[data-theme="light"] .sl-blog-page [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:root[data-theme="light"] .sl-blog-page .prose-invert {
+  --tw-prose-body: #3f3f46;
+  --tw-prose-headings: #18181b;
+  --tw-prose-links: #b45309;
+  --tw-prose-bold: #18181b;
+  --tw-prose-counters: #71717a;
+  --tw-prose-bullets: #d1d5db;
+  --tw-prose-hr: #e5e7eb;
+  --tw-prose-quotes: #52525b;
+  --tw-prose-quote-borders: #f59e0b;
+  --tw-prose-captions: #71717a;
+  --tw-prose-code: #b45309;
+  --tw-prose-pre-code: #334155;
+  --tw-prose-pre-bg: #f8fafc;
+  --tw-prose-th-borders: #e5e7eb;
+  --tw-prose-td-borders: #f3f4f6;
+}
+
+/* --- Admin Dashboard (Light Mode) ------------------------------------------- */
+
+:root[data-theme="light"] .sl-admin-page {
+  background-color: #fafaf9 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-white {
+  color: #1c1917 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-zinc-200 {
+  color: #27272a !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-zinc-300 {
+  color: #3f3f46 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-zinc-400 {
+  color: #52525b !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-zinc-500 {
+  color: #71717a !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .border-white\/10,
+:root[data-theme="light"] .sl-admin-page .border-white\/12,
+:root[data-theme="light"] .sl-admin-page .border-white\/8,
+:root[data-theme="light"] .sl-admin-page .border-white\/15,
+:root[data-theme="light"] .sl-admin-page .border-amber-400\/30 {
+  border-color: rgba(146, 64, 14, 0.12) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-white\/5,
+:root[data-theme="light"] .sl-admin-page .bg-white\/6,
+:root[data-theme="light"] .sl-admin-page .bg-white\/10,
+:root[data-theme="light"] .sl-admin-page [class*="bg-white/[0.0"] {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .sl-admin-page table thead tr {
+  background-color: #f8fafc !important;
+}
+
+:root[data-theme="light"] .sl-admin-page table tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page aside {
+  background-color: #ffffff !important;
+  border-right: 1px solid rgba(146, 64, 14, 0.1) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page input {
+  background-color: #ffffff !important;
+  color: #1c1917 !important;
+  border-color: rgba(146, 64, 14, 0.2) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page [class*="bg-[#1"] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .blur-3xl {
+  opacity: 0.15 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-amber-500\/15,
+:root[data-theme="light"] .sl-admin-page [class*="bg-amber-400/10"] {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-emerald-500\/15 {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-red-500\/10,
+:root[data-theme="light"] .sl-admin-page [class*="bg-red-500/10"] {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+:root[data-theme="light"] .sl-admin-page [class*="bg-purple-500/10"] {
+  background-color: #f3e8ff !important;
+  color: #6b21a8 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page [class*="bg-blue-500/10"] {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-amber-400,
+:root[data-theme="light"] .sl-admin-page .text-amber-300,
+:root[data-theme="light"] .sl-admin-page .text-amber-200 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-emerald-400 {
+  color: #059669 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-purple-300 {
+  color: #7e22ce !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-red-300 {
+  color: #dc2626 !important;
+}
+
+:root[data-theme="light"] .theme-toggle-btn {
+  border-color: rgba(146, 64, 14, 0.2) !important;
+  background-color: rgba(146, 64, 14, 0.05) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page [class*="bg-[#0"],
+:root[data-theme="light"] .sl-admin-page [class*="bg-[#1"] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-white\/8,
+:root[data-theme="light"] .sl-admin-page .bg-white\/12,
+:root[data-theme="light"] .sl-admin-page .bg-white\/15 {
+  background-color: #f8fafc !important;
+  border: 1px solid rgba(146, 64, 14, 0.1) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page input,
+:root[data-theme="light"] .sl-admin-page select,
+:root[data-theme="light"] .sl-admin-page textarea {
+  background-color: #ffffff !important;
+  color: #1c1917 !important;
+  border: 1px solid rgba(146, 64, 14, 0.2) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-zinc-600 {
+  color: #71717a !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .text-emerald-400 {
+  color: #047857 !important;
+}
+
+:root[data-theme="light"] .sl-admin-page [class*="bg-white/[0.02]"],
+:root[data-theme="light"] .sl-admin-page [class*="bg-white/[0.03]"],
+:root[data-theme="light"] .sl-admin-page [class*="bg-white/[0.04]"] {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(146, 64, 14, 0.1) !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-gradient-to-br {
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .sl-admin-page .bg-gradient-to-r {
+  /* Keep some gradients for CTA buttons but ensure text is white */
+  color: white !important;
+}

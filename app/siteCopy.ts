@@ -52,6 +52,7 @@ export type CopyPack = {
   testimonialHelper: string;
   statsTitle: string;
   testimonials: Testimonial[];
+  days: string;
   hrs: string;
   mins: string;
   secs: string;
@@ -194,7 +195,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     hrs: "घंटे",
     mins: "मिनट",
     secs: "सेकंड",
-    menu: ["होम", "मेरे टिकट", "लाइव रिजल्ट", "जैकपॉट", "रिवॉर्ड्स", "सपोर्ट"],
+    menu: ["होम", "मेरे टिकट", "लाइव रिजल्ट", "जैकपॉट", "रिवॉर्ड्स", "सपोर्ट", "ब्लॉग"],
     stats: [
       { label: "सक्रिय खिलाड़ी", value: 128000, suffix: "+" },
       { label: "करोड़पति विजेता", value: 4486, suffix: "+" },

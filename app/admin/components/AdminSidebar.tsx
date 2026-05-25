@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
-export type AdminSection = "overview" | "users" | "draws" | "results" | "blog";
+export type AdminSection = "overview" | "users" | "draws" | "results" | "blog" | "carousel";
 
 const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
   {
@@ -58,6 +58,17 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = 
       </svg>
     ),
   },
+  {
+    id: "carousel",
+    label: "Carousel",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+    ),
+  },
 ];
 
 type Props = {
@@ -72,12 +83,12 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
-      <div className="border-b border-white/10 px-6 pb-5 pt-6">
+      <div className="border-b border-[var(--border)] px-6 pb-5 pt-6">
         <Link href="/" className="group flex flex-col leading-none outline-none">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300/90 transition group-hover:text-amber-300">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 transition group-hover:text-amber-600">
             Subhlaxmi
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">
             Admin Control Panel
           </p>
         </Link>
@@ -94,16 +105,16 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
               onClick={() => onSelect(item.id)}
               className={`group flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition-all ${
                 isActive
-                  ? "bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-400/30 text-amber-200"
-                  : "text-zinc-400 hover:bg-white/6 hover:text-zinc-200"
+                  ? "bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400"
+                  : "text-[var(--muted)] hover:bg-[var(--foreground)]/5 hover:text-[var(--foreground)]"
               }`}
             >
-              <span className={`transition ${isActive ? "text-amber-400" : "text-zinc-500 group-hover:text-zinc-300"}`}>
+              <span className={`transition ${isActive ? "text-amber-500" : "text-[var(--muted)] group-hover:text-[var(--foreground)]"}`}>
                 {item.icon}
               </span>
               {item.label}
               {isActive && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-500" />
               )}
             </button>
           );
@@ -111,19 +122,19 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
       </nav>
 
       {/* Admin Badge */}
-      <div className="border-t border-white/10 px-4 py-4">
-        <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-[#1a0900]">
+      <div className="border-t border-[var(--border)] px-4 py-4">
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--foreground)]/[0.03] px-3 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-white">
             {adminName.slice(0, 1).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-zinc-200">{adminName}</p>
-            <p className="text-[10px] text-amber-400/80 font-medium">Super Admin</p>
+            <p className="truncate text-xs font-semibold text-[var(--foreground)]">{adminName}</p>
+            <p className="text-[10px] text-amber-500 font-medium">Super Admin</p>
           </div>
         </div>
         <Link
           href="/"
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2 text-xs font-semibold text-zinc-400 transition hover:border-white/20 hover:text-zinc-200"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] py-2 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--foreground)]/20 hover:text-[var(--foreground)]"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -139,7 +150,7 @@ export function AdminSidebar({ active, onSelect, adminName, mobileOpen, onMobile
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-[#100710] lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--background)] lg:flex">
         <SidebarContent active={active} onSelect={onSelect} adminName={adminName} />
       </aside>
 
@@ -161,7 +172,7 @@ export function AdminSidebar({ active, onSelect, adminName, mobileOpen, onMobile
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#100710] lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-[var(--border)] bg-[var(--background)] lg:hidden"
             >
               <SidebarContent active={active} onSelect={(s) => { onSelect(s); onMobileClose(); }} adminName={adminName} />
             </motion.aside>

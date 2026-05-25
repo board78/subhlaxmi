@@ -110,7 +110,7 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
   }, [activeSeries, activeTab]);
 
   const toggleTicket = (ticket: TicketPublic) => {
-    if (ticket.status === "sold") return;
+    if (ticket.status === "sold" || draw.status === "closed") return;
     setSelected((prev) => {
       const next = new Map(prev);
       if (next.has(ticket.number)) {
@@ -128,6 +128,8 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
   const quickPick = (amount: number) => {
     const available =
       ticketData?.tickets.filter((t) => t.status === "available" && !selected.has(t.number)) ?? [];
+    
+    if (draw.status === "closed") return;
     const toAdd = available.slice(0, amount - selectedCount);
 
     if (!toAdd.length) return;
@@ -339,8 +341,16 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
 
           <div
             ref={gridRef}
-            className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-2 sm:px-5"
+            className="hide-scrollbar relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-2 sm:px-5"
           >
+            {draw.status === "closed" && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                <div className="rounded-2xl border border-red-500/30 bg-[#1a0b0d] p-6 text-center shadow-2xl">
+                  <p className="text-lg font-bold text-red-400">Booking Closed</p>
+                  <p className="mt-1 text-sm text-zinc-400">This draw is closed. Waiting for results.</p>
+                </div>
+              </div>
+            )}
             {loadingTickets ? (
               <div className="flex h-40 items-center justify-center">
                 <TicketGridSkeleton />
@@ -501,19 +511,21 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
                 type="button"
                 onClick={handleBuyNow}
                 disabled={
-                  !selectedCount || bookingState === "booking" || bookingState === "success"
+                  !selectedCount || bookingState === "booking" || bookingState === "success" || draw.status === "closed"
                 }
-                whileHover={selectedCount > 0 ? { scale: 1.02 } : {}}
+                whileHover={selectedCount > 0 && draw.status !== "closed" ? { scale: 1.02 } : {}}
                 transition={{ duration: 0.14 }}
                 className="w-full rounded-full sl-cta-gradient sl-force-light-text px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {bookingState === "booking"
-                  ? "Loading…"
-                  : bookingState === "success"
-                    ? "Added ✓"
-                    : selectedCount > 0
-                      ? "Buy Now"
-                      : "Select Tickets"}
+                {draw.status === "closed"
+                  ? "Closed"
+                  : bookingState === "booking"
+                    ? "Loading…"
+                    : bookingState === "success"
+                      ? "Added ✓"
+                      : selectedCount > 0
+                        ? "Buy Now"
+                        : "Select Tickets"}
               </motion.button>
             </div>
           </div>

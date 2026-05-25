@@ -10,7 +10,8 @@
     "seed": "tsx --env-file=.env scripts/seed-tickets.ts",
     "backfill": "tsx --env-file=.env scripts/backfill-draw-tickets.ts",
     "reset:samridhi": "tsx --env-file=.env scripts/reset-samridhi-tickets.ts",
-    "reset:kuber": "tsx --env-file=.env scripts/reset-kuber-tickets.ts"
+    "reset:kuber": "tsx --env-file=.env scripts/reset-kuber-tickets.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.0",
@@ -35,6 +36,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "husky": "^9.1.7",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

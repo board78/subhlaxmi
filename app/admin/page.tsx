@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AdminSidebar, type AdminSection } from "./components/AdminSidebar";
 import { AdminHeader } from "./components/AdminHeader";
+import { ThemeToggle } from "../../components/ThemeToggle";
 import { OverviewStats } from "./components/OverviewStats";
 import { UserManagement } from "./components/UserManagement";
 import { DrawManagement } from "./components/DrawManagement";
 import { ResultsManagement } from "./components/ResultsManagement";
 import { BlogManagement } from "./components/BlogManagement";
+import { CarouselManagement } from "./components/CarouselManagement";
 
 type AuthUser = { name: string; email: string; role: string };
 
@@ -31,10 +33,11 @@ export default function AdminPage() {
     draws: <DrawManagement />,
     results: <ResultsManagement />,
     blog: <BlogManagement />,
+    carousel: <CarouselManagement />,
   };
 
   return (
-    <div className="flex min-h-screen bg-[#12040c] text-white">
+    <div className="sl-admin-page flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/8 blur-3xl" />
@@ -51,7 +54,6 @@ export default function AdminPage() {
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      {/* Main content area */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <AdminHeader
           section={section}

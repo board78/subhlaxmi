@@ -164,7 +164,7 @@ export default function BlogPage() {
     : posts;
 
   return (
-    <div className="royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="sl-blog-page royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <Navbar
         user={user}
         onAuthChange={(u) => { setUser(u); if (!u) router.push("/"); }}

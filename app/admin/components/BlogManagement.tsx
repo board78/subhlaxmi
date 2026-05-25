@@ -4,35 +4,16 @@ import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
-const CLOUD_API_KEY = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY ?? "";
+const CLOUD_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? "subhlaxmi_preset";
 
 async function uploadToCloudinary(
   file: File,
   onProgress?: (pct: number) => void,
-  folder = "blog_thumbnails",
 ): Promise<string> {
-  // 1. Get signed params from our API (pass folder so it's included in signature)
-  const sigRes = await fetch("/api/cloudinary-signature", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ folder }),
-  });
-  if (!sigRes.ok) throw new Error("Could not get upload signature.");
-  const { signature, timestamp, folder: signedFolder } = (await sigRes.json()) as {
-    signature: string;
-    timestamp: number;
-    folder: string;
-  };
-
-  // 2. Upload directly to Cloudinary via XHR (for progress)
-  // FormData params must EXACTLY match what was signed (same folder, same timestamp)
   return new Promise((resolve, reject) => {
     const fd = new FormData();
     fd.append("file", file);
-    fd.append("api_key", CLOUD_API_KEY);
-    fd.append("timestamp", String(timestamp));
-    fd.append("signature", signature);
-    fd.append("folder", signedFolder);   // use folder returned by server
+    fd.append("upload_preset", CLOUD_UPLOAD_PRESET);
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
