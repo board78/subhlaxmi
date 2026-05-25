@@ -7,6 +7,7 @@ import type { SafeUser } from "@/lib/auth";
 type AuthMode = "signin" | "register";
 type RegisterStep = "email" | "code" | "password";
 
+
 type Props = {
   open: boolean;
   initialMode: AuthMode;
