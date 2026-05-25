@@ -87,7 +87,9 @@ function toDrawPublic(doc: DrawDoc): DrawPublic {
     try {
       const drawDate = new Date(doc.drawDate);
       const timeStr = (doc.drawTime || "00:00").toLowerCase();
-      let [hours, minutes] = timeStr.replace(/[ap]m/, "").split(":").map(Number);
+      const parts = timeStr.replace(/[ap]m/, "").split(":").map(Number);
+      let hours = parts[0];
+      const minutes = parts[1];
 
       if (timeStr.includes("pm") && hours < 12) hours += 12;
       if (timeStr.includes("am") && hours === 12) hours = 0;

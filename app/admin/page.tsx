@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AdminSidebar, type AdminSection } from "./components/AdminSidebar";
 import { AdminHeader } from "./components/AdminHeader";
-import { ThemeToggle } from "../../components/ThemeToggle";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { OverviewStats } from "./components/OverviewStats";
 import { UserManagement } from "./components/UserManagement";
 import { DrawManagement } from "./components/DrawManagement";

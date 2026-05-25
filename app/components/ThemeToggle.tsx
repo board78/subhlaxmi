@@ -18,7 +18,7 @@ export function ThemeToggle() {
       document.documentElement.setAttribute('data-theme', initialTheme);
     }
     
-    setTheme(initialTheme);
+    setTimeout(() => setTheme(initialTheme), 0);
   }, []);
 
   const toggleTheme = () => {

@@ -154,7 +154,12 @@ export default function BlogPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void fetchPosts();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [fetchPosts]);
 
   const filtered = search.trim()
     ? posts.filter(p =>

@@ -19,7 +19,7 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
   const [activeIndex, setActiveIndex]     = useState(0);
   const [dynamicImages, setDynamicImages] = useState<string[]>([]);
   const timerRef    = useRef<number | null>(null);
-  const restartKey  = useRef(0);
+  const [restartKey, setRestartKey] = useState(0);
 
   // Try to fetch dynamic images from the API
   useEffect(() => {
@@ -44,13 +44,11 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
     };
     tick();
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
-  }, [intervalMs, images.length, restartKey.current]);
+  }, [intervalMs, images.length, restartKey]);
 
   const jumpTo = (index: number) => {
     setActiveIndex(index);
-    restartKey.current += 1;
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => setActiveIndex((i) => (i + 1) % images.length), intervalMs);
+    setRestartKey((prev) => prev + 1);
   };
 
   const src = images[activeIndex] ?? images[0];

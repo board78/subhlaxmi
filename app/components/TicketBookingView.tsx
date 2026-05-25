@@ -54,20 +54,10 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  useEffect(() => {
-    setActiveSeries(draw.series[0] ?? "A");
-    setActiveTab("available");
-    setSearchQuery("");
-    setDebouncedSearch("");
-    setPage(1);
-    setSelected(new Map());
-    setTicketData(null);
-    setBookingState("idle");
-    setBookingError("");
-  }, [draw.id]);
-
   const fetchTickets = useCallback(
     async (pageNum: number, append = false) => {
+      await Promise.resolve(); // Defer to microtask to prevent synchronous setState inside useEffect
+
       const params = new URLSearchParams({
         series: activeSeries,
         tab: activeTab === "search" ? "all" : activeTab,
@@ -102,7 +92,10 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
   );
 
   useEffect(() => {
-    void fetchTickets(1);
+    const t = setTimeout(() => {
+      void fetchTickets(1);
+    }, 0);
+    return () => clearTimeout(t);
   }, [draw.id, activeSeries, activeTab, debouncedSearch, fetchTickets]);
 
   useEffect(() => {

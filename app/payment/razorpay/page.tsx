@@ -10,21 +10,23 @@ export default function RazorpaySuccessPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Read params stored in sessionStorage by cart page after payment
-    const raw = sessionStorage.getItem("rzp_payment_result");
-    if (!raw) {
-      setStatus("failed");
-      setMessage("Payment details not found. Please contact support.");
-      return;
-    }
-
-    const params = JSON.parse(raw) as {
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
-    };
-
     async function verify() {
+      await Promise.resolve(); // Defer to microtask to prevent synchronous setState within effect
+
+      // Read params stored in sessionStorage by cart page after payment
+      const raw = sessionStorage.getItem("rzp_payment_result");
+      if (!raw) {
+        setStatus("failed");
+        setMessage("Payment details not found. Please contact support.");
+        return;
+      }
+
+      const params = JSON.parse(raw) as {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      };
+
       try {
         const res = await fetch("/api/payments/razorpay/verify", {
           method: "POST",

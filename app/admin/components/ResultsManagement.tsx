@@ -180,8 +180,10 @@ function DeclareModal({
   // Fetch booked tickets when draw changes
   useEffect(() => {
     if (!drawId) {
-      setTickets([]);
-      setSelectedTicket(null);
+      setTimeout(() => {
+        setTickets([]);
+        setSelectedTicket(null);
+      }, 0);
       return;
     }
 
@@ -529,7 +531,12 @@ export function ResultsManagement() {
     }
   }, []);
 
-  useEffect(() => { void fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void fetchAll();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [fetchAll]);
 
   const handleDelete = async (result: Result) => {
     setDeleteTarget(null);

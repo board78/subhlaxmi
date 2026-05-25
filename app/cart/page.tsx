@@ -97,7 +97,7 @@ export default function CartPage() {
   useEffect(() => {
     if (!expandedItem) return;
     if (!cart.items.some((i) => i.drawId === expandedItem.drawId)) {
-      setExpandedItem(null);
+      setTimeout(() => setExpandedItem(null), 0);
     }
   }, [cart.items, expandedItem]);
 

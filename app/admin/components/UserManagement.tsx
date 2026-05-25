@@ -92,7 +92,10 @@ export function UserManagement() {
   }, [page, search]);
 
   useEffect(() => {
-    void fetchUsers();
+    const t = setTimeout(() => {
+      void fetchUsers();
+    }, 0);
+    return () => clearTimeout(t);
   }, [fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {

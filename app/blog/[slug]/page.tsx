@@ -76,7 +76,7 @@ export default function BlogPostPage() {
             <div className="h-6 w-2/3 rounded-lg bg-white/8" />
             <div className="h-64 rounded-2xl bg-white/8" />
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-4 rounded-full bg-white/6" style={{ width: `${75 + Math.random() * 25}%` }} />
+              <div key={i} className="h-4 rounded-full bg-white/6" style={{ width: `${75 + ((i * 7) % 25)}%` }} />
             ))}
           </div>
         </main>

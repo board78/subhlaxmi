@@ -121,7 +121,6 @@ export default function Home() {
     return new URLSearchParams(window.location.search).get("auth") === "register" ? "register" : "signin";
   });
   const [profileOpen,     setProfileOpen]     = useState(false);
-  const [bookingMessage,  setBookingMessage]  = useState("");
   const [drawsPage,       setDrawsPage]       = useState(1);
   const [winnerBurst,     setWinnerBurst]     = useState({ image: "", key: 0 });
 
@@ -152,15 +151,6 @@ export default function Home() {
   const openAuth = (mode: "signin" | "register") => { setAuthMode(mode); setAuthOpen(true); };
 
   const openBookPage = (draw: DrawSummaryPublic) => router.push(`/book/${draw.id}`);
-
-  const bookTicket = (name: string) => {
-    setBookingMessage("");
-    const norm = name.toLowerCase();
-    const live = liveDraws.find((d) => d.name.toLowerCase().includes(norm.split(" ")[0]));
-    if (live) { openBookPage(live); return; }
-    if (!authUser) { openAuth("signin"); return; }
-    setBookingMessage(`${name} is not yet available. Run npm run seed to load draws.`);
-  };
 
   const totalPages = Math.max(1, Math.ceil(sortedDraws.length / 6));
 
@@ -227,10 +217,6 @@ export default function Home() {
                       <h2 className="text-lg font-semibold sm:text-xl">{currentCopy.popularTitle}</h2>
                       <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-zinc-300">IST</span>
                     </div>
-
-                    {bookingMessage && (
-                      <p className="mb-3 rounded-2xl border border-amber-200/15 bg-amber-300/10 px-4 py-3 text-xs text-amber-100">{bookingMessage}</p>
-                    )}
 
                     {sortedDraws.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center">

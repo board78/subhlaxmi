@@ -23,8 +23,10 @@ export function Navbar({ user, onAuthChange }: NavbarProps) {
     const params = new URLSearchParams(window.location.search);
     const auth = params.get("auth");
     if (auth === "signin" || auth === "register") {
-      setAuthMode(auth === "register" ? "register" : "signin");
-      setShowAuth(true);
+      setTimeout(() => {
+        setAuthMode(auth === "register" ? "register" : "signin");
+        setShowAuth(true);
+      }, 0);
     }
   }, []);
 

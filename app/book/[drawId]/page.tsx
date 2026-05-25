@@ -36,8 +36,12 @@ export default function BookDrawPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadError(null);
-    setDraw(null);
+    setTimeout(() => {
+      if (cancelled) return;
+      setLoadError(null);
+      setDraw(null);
+    }, 0);
+
     fetch(`/api/draws/${drawId}`)
       .then(async (r) => {
         if (r.status === 404) return null;
@@ -133,6 +137,7 @@ export default function BookDrawPage() {
               </div>
             ) : (
               <TicketBookingView
+                key={draw.id}
                 draw={draw}
                 user={authUser ? { id: authUser.id } : null}
                 onNeedAuth={() => openAuth("signin")}

@@ -8,7 +8,6 @@ if (!uri) {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var _subhlaxmiMongoClientPromise: Promise<MongoClient> | undefined;
 }
 

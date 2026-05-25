@@ -8,7 +8,7 @@ export function AppToaster() {
 
   useEffect(() => {
     const read = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
-    setTheme(read());
+    setTimeout(() => setTheme(read()), 0);
     const obs = new MutationObserver(() => setTheme(read()));
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => obs.disconnect();
