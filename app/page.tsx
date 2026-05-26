@@ -13,6 +13,7 @@ import { PanelCorners }           from "./components/PanelCorners";
 import { RightInsightColumn }     from "./components/RightInsightColumn";
 import { VerticalImageCarousel }  from "./components/VerticalImageCarousel";
 import { WinnerCard }             from "./components/WinnerCard";
+import { DrawTicketCard }         from "./components/DrawTicketCard";
 
 import { siteCopy, type Language } from "./siteCopy";
 import type { DrawSummaryPublic }  from "@/lib/draws";
@@ -226,84 +227,16 @@ export default function Home() {
                     ) : (
                       <>
                         <div className="grid items-start gap-3 md:grid-cols-2">
-                          {sortedDraws.slice((drawsPage - 1) * 6, drawsPage * 6).map((draw, index) => {
-                            const statusConfig: Record<string, { label: string; color: string }> = {
-                              active: { label: language === "hi" ? "सक्रिय" : "Active", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-                              upcoming: { label: language === "hi" ? "आने वाली" : "Upcoming", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-                              closed: { label: language === "hi" ? "बंद" : "Closed", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-                            };
-                            const status = statusConfig[draw.status] || { label: draw.status, color: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30" };
-
-                            const gradients = [
-                              "from-[#2ca7ff] to-[#6157ff]","from-[#ff7b38] to-[#ff3d6e]",
-                              "from-[#7a5cff] to-[#c052ff]","from-[#e0a60d] to-[#ff7b38]",
-                              "from-[#00c6ff] to-[#0072ff]","from-[#f857a6] to-[#ff5858]",
-                              "from-[#56ab2f] to-[#a8e063]",
-                            ];
-                            const accent   = gradients[index % gradients.length];
-                            const pctLeft  = draw.totalTickets > 0
-                              ? Math.max(0, Math.min(100, (draw.availableTickets / draw.totalTickets) * 100))
-                              : null;
-                            const drawDate = new Date(draw.drawDate);
-                            const drawTimeLabel = `${drawDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${draw.drawTime}`;
-
-                            return (
-                              <motion.article
-                                key={draw.id}
-                                onClick={() => openBookPage(draw)}
-                                whileHover={{ boxShadow: "0 0 28px rgba(255,153,0,0.18)" }}
-                                transition={{ duration: 0.18 }}
-                                className={`group self-start rounded-3xl bg-gradient-to-r p-[2px] ${accent} cursor-pointer transition`}
-                              >
-                                <div className="flex flex-col overflow-hidden rounded-[22px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                                  <div className="sl-popular-draw-card flex flex-col bg-[#120b0f] p-3 transition-[border-radius] duration-300 ease-out sm:p-4 rounded-[22px] group-hover:rounded-t-[22px] group-hover:rounded-b-[14px]">
-                                    <div className="flex items-start justify-between gap-2 sm:gap-3">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="sl-ticket-draw-name text-[11px] font-semibold leading-snug sm:text-xs md:text-sm">{draw.name}</p>
-                                        <p className="mt-1 text-base font-bold leading-tight text-amber-300 sm:text-lg md:text-xl">
-                                          ₹{draw.pricePerTicket.toLocaleString("en-IN")}/ticket
-                                        </p>
-                                      </div>
-                                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0 max-w-[55%]">
-                                        {draw.prizeAmount && (
-                                          <div className="shrink-0 rounded-xl bg-amber-400/10 border border-amber-400/20 px-2 py-1 text-center text-[9px] font-bold text-amber-300 sm:rounded-2xl sm:px-2.5 sm:py-1.5 sm:text-[10px] md:text-xs">
-                                            🏆 {draw.prizeAmount}
-                                          </div>
-                                        )}
-                                        <div className="sl-ticket-draw-time-pill shrink-0 rounded-xl bg-white/10 px-2 py-1 text-right text-[9px] leading-tight text-zinc-100 sm:rounded-2xl sm:px-2.5 sm:py-1.5 sm:text-[10px] md:text-xs">
-                                          {drawTimeLabel}
-                                        </div>
-                                        <div className={`shrink-0 rounded-xl border px-2 py-1 text-[9px] font-bold sm:rounded-2xl sm:px-2.5 sm:py-1.5 sm:text-[10px] md:text-xs ${status.color}`}>
-                                          {status.label}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {pctLeft != null && (
-                                      <div className="mt-3">
-                                        <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
-                                          <span>Only <span className="text-amber-200">{draw.availableTickets.toLocaleString("en-IN")}</span> left</span>
-                                          <span>{draw.totalTickets.toLocaleString("en-IN")} total</span>
-                                        </div>
-                                        <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full border border-emerald-200/15 bg-gradient-to-r from-emerald-950/70 via-amber-950/50 to-red-950/60 shadow-inner shadow-black/30">
-                                          <div className="sl-progress-fill h-full rounded-full" style={{ width: `${pctLeft}%` }} />
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); openBookPage(draw); }}
-                                      className="mt-3 w-fit cursor-pointer rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-semibold text-white sm:mt-4 sm:px-4 sm:py-2 sm:text-xs"
-                                    >
-                                      {currentCopy.buyTicket}
-                                    </button>
-                                  </div>
-                                  <div className={`h-0 shrink-0 overflow-hidden bg-gradient-to-r transition-[height] duration-300 ease-out rounded-b-[22px] group-hover:h-[36px] group-hover:rounded-t-[14px] ${accent}`} aria-hidden />
-                                </div>
-                              </motion.article>
-                            );
-                          })}
+                          {sortedDraws.slice((drawsPage - 1) * 6, drawsPage * 6).map((draw, index) => (
+                            <DrawTicketCard
+                              key={draw.id}
+                              draw={draw}
+                              index={index}
+                              language={language}
+                              buyLabel={currentCopy.buyTicket}
+                              onBuy={() => openBookPage(draw)}
+                            />
+                          ))}
                         </div>
 
                         {/* Pagination */}

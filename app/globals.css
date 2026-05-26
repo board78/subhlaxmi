@@ -779,6 +779,31 @@ input[type="reset"]:disabled {
   border-color: rgba(251, 191, 36, 0.12) !important;
 }
 
+.sl-draw-prize-hero {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] .sl-draw-prize-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(254, 243, 199, 0.45)) !important;
+  border-color: rgba(217, 119, 6, 0.2) !important;
+}
+
+:root[data-theme="light"] .sl-draw-prize-hero .text-amber-300 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .sl-draw-prize-hero .text-white {
+  color: #292524 !important;
+}
+
+:root[data-theme="light"] .sl-draw-prize-hero .text-zinc-500 {
+  color: #78716c !important;
+}
+
+:root[data-theme="light"] .sl-draw-prize-hero .rounded-full {
+  background-color: #faf7f4 !important;
+}
+
 /* Home: popular draw cards — ticket title (zinc-100 on dark face, zinc-600 in light mode) */
 .sl-popular-draw-card .sl-ticket-draw-name {
   color: #f4f4f5;

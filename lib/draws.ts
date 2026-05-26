@@ -80,31 +80,6 @@ export type BookingResult = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toDrawPublic(doc: DrawDoc): DrawPublic {
-  let status = doc.status;
-
-  // Auto-close logic: if status is active/upcoming but draw time has passed
-  if (status === "active" || status === "upcoming") {
-    try {
-      const drawDate = new Date(doc.drawDate);
-      const timeStr = (doc.drawTime || "00:00").toLowerCase();
-      const parts = timeStr.replace(/[ap]m/, "").split(":").map(Number);
-      let hours = parts[0];
-      const minutes = parts[1];
-
-      if (timeStr.includes("pm") && hours < 12) hours += 12;
-      if (timeStr.includes("am") && hours === 12) hours = 0;
-
-      const drawDateTime = new Date(drawDate);
-      drawDateTime.setHours(hours || 0, minutes || 0, 0, 0);
-
-      if (new Date() > drawDateTime) {
-        status = "closed";
-      }
-    } catch (err) {
-      console.error("Error parsing draw time for auto-close:", err);
-    }
-  }
-
   return {
     id: doc._id.toString(),
     name: doc.name,
@@ -116,7 +91,7 @@ function toDrawPublic(doc: DrawDoc): DrawPublic {
     ticketPrefix: doc.ticketPrefix,
     ticketRangeStart: doc.ticketRangeStart,
     ticketRangeEnd: doc.ticketRangeEnd,
-    status: status,
+    status: doc.status,
   };
 }
 
