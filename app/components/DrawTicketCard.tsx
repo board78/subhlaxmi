@@ -120,15 +120,15 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
             </div>
           </div>
 
-          {pctLeft != null && (
+         {pctLeft != null && ( 
             <div className="mt-3">
               <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
-                <span>
+                {/* <span>
                   {language === "hi" ? "केवल" : "Only"}{" "}
                   <span className="text-amber-200">{draw.availableTickets.toLocaleString("en-IN")}</span>{" "}
                   {onlyLeft}
-                </span>
-                <span>{draw.totalTickets.toLocaleString("en-IN")} total</span>
+                </span> */}
+                {/* <span>{draw.totalTickets.toLocaleString("en-IN")} total</span> */}
               </div>
               <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full border border-emerald-200/15 bg-gradient-to-r from-emerald-950/70 via-amber-950/50 to-red-950/60 shadow-inner shadow-black/30">
                 <div className="sl-progress-fill h-full rounded-full" style={{ width: `${pctLeft}%` }} />
