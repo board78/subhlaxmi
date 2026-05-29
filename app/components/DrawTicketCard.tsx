@@ -3,19 +3,95 @@
 import { motion } from "framer-motion";
 import type { DrawSummaryPublic } from "@/lib/draws";
 
-const ACCENTS = [
-  "from-[#2ca7ff] to-[#6157ff]",
-  "from-[#ff7b38] to-[#ff3d6e]",
-  "from-[#7a5cff] to-[#c052ff]",
-  "from-[#e0a60d] to-[#ff7b38]",
-  "from-[#00c6ff] to-[#0072ff]",
-  "from-[#f857a6] to-[#ff5858]",
+const THEMES = [
+  {
+    accent: "#7c6fff",
+    glow: "rgba(124,111,255,0.22)",
+    border: "rgba(124,111,255,0.35)",
+    prizeBg: "rgba(124,111,255,0.10)",
+    prizeColor: "#c4baff",
+    badgeBg: "rgba(124,111,255,0.18)",
+    badgeColor: "#a89fff",
+    btnBg: "linear-gradient(135deg,#6c5fff,#4f46e5)",
+    btnGlow: "rgba(108,95,255,0.45)",
+  },
+  {
+    accent: "#f4506a",
+    glow: "rgba(244,80,106,0.20)",
+    border: "rgba(244,80,106,0.30)",
+    prizeBg: "rgba(244,80,106,0.09)",
+    prizeColor: "#ffaab8",
+    badgeBg: "rgba(244,80,106,0.16)",
+    badgeColor: "#ff8fa0",
+    btnBg: "linear-gradient(135deg,#e11d48,#be123c)",
+    btnGlow: "rgba(225,29,72,0.45)",
+  },
+  {
+    accent: "#10b981",
+    glow: "rgba(16,185,129,0.20)",
+    border: "rgba(16,185,129,0.28)",
+    prizeBg: "rgba(16,185,129,0.09)",
+    prizeColor: "#6ee7b7",
+    badgeBg: "rgba(16,185,129,0.16)",
+    badgeColor: "#34d399",
+    btnBg: "linear-gradient(135deg,#059669,#047857)",
+    btnGlow: "rgba(5,150,105,0.45)",
+  },
+  {
+    accent: "#f59e0b",
+    glow: "rgba(245,158,11,0.20)",
+    border: "rgba(245,158,11,0.28)",
+    prizeBg: "rgba(245,158,11,0.09)",
+    prizeColor: "#fcd34d",
+    badgeBg: "rgba(245,158,11,0.14)",
+    badgeColor: "#fbbf24",
+    btnBg: "linear-gradient(135deg,#d97706,#b45309)",
+    btnGlow: "rgba(217,119,6,0.45)",
+  },
+  {
+    accent: "#06b6d4",
+    glow: "rgba(6,182,212,0.20)",
+    border: "rgba(6,182,212,0.28)",
+    prizeBg: "rgba(6,182,212,0.09)",
+    prizeColor: "#67e8f9",
+    badgeBg: "rgba(6,182,212,0.14)",
+    badgeColor: "#22d3ee",
+    btnBg: "linear-gradient(135deg,#0891b2,#0e7490)",
+    btnGlow: "rgba(8,145,178,0.45)",
+  },
+  {
+    accent: "#e879f9",
+    glow: "rgba(232,121,249,0.20)",
+    border: "rgba(232,121,249,0.28)",
+    prizeBg: "rgba(232,121,249,0.09)",
+    prizeColor: "#f0abfc",
+    badgeBg: "rgba(232,121,249,0.14)",
+    badgeColor: "#e879f9",
+    btnBg: "linear-gradient(135deg,#a21caf,#86198f)",
+    btnGlow: "rgba(162,28,175,0.45)",
+  },
 ];
 
-function formatPrize(raw?: string) {
+function formatPrize(raw?: string, language: "en" | "hi" = "en") {
   if (!raw?.trim()) return null;
   const digits = raw.replace(/[^\d]/g, "");
-  if (digits) return `₹${Number(digits).toLocaleString("en-IN")}`;
+  if (digits) {
+    const num = Number(digits);
+    if (num >= 100000) {
+      if (num >= 10000000) {
+        const crVal = num / 10000000;
+        const formattedVal = parseFloat(crVal.toFixed(2));
+        const suffix = language === "hi" ? " करोड़" : " Crore";
+        return `₹${formattedVal}${suffix}`;
+      } else {
+        const lakhVal = num / 100000;
+        const formattedVal = parseFloat(lakhVal.toFixed(2));
+        const suffix = language === "hi" ? " लाख" : " Lakh";
+        return `₹${formattedVal}${suffix}`;
+      }
+    }
+    return `₹${num.toLocaleString("en-IN")}`;
+  }
   return raw.startsWith("₹") ? raw : `₹${raw}`;
 }
 
@@ -28,135 +104,331 @@ type Props = {
 };
 
 export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props) {
-  const accent = ACCENTS[index % ACCENTS.length];
-  const prize = formatPrize(draw.prizeAmount);
+  const theme = THEMES[index % THEMES.length];
+  const prize = formatPrize(draw.prizeAmount, language);
   const drawDate = new Date(draw.drawDate);
-  const drawTimeLabel = `${drawDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${draw.drawTime}`;
+  const drawTimeLabel = `${drawDate.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  })} · ${draw.drawTime}`;
+
   const pctLeft =
     draw.totalTickets > 0
       ? Math.max(0, Math.min(100, (draw.availableTickets / draw.totalTickets) * 100))
       : null;
   const soldPct = pctLeft != null ? 100 - pctLeft : null;
 
-  const statusMap: Record<string, { label: string; color: string }> = {
-    active: {
-      label: language === "hi" ? "सक्रिय" : "Active",
-      color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    },
-    upcoming: {
-      label: language === "hi" ? "आने वाली" : "Upcoming",
-      color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    },
-    closed: {
-      label: language === "hi" ? "बंद" : "Closed",
-      color: "bg-red-500/20 text-red-400 border-red-500/30",
-    },
-    drawn: {
-      label: language === "hi" ? "निकाला गया" : "Drawn",
-      color: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    },
+  const statusMap: Record<string, { label: string }> = {
+    active:   { label: language === "hi" ? "सक्रिय"      : "Active"    },
+    upcoming: { label: language === "hi" ? "आने वाली"    : "Upcoming"  },
+    closed:   { label: language === "hi" ? "बंद"          : "Closed"    },
+    drawn:    { label: language === "hi" ? "निकाला गया"  : "Drawn"     },
   };
-  const status = statusMap[draw.status] ?? {
-    label: draw.status,
-    color: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-  };
-
-  const prizeKicker = language === "hi" ? "पहला पुरस्कार" : "First prize";
-  const onlyLeft = language === "hi" ? "बचे" : "left";
+  const statusLabel = statusMap[draw.status]?.label ?? draw.status;
+  const prizeKicker = language === "hi" ? "पहला पुरस्कार" : "First Prize";
+  const perTicketLabel = language === "hi" ? "प्रति टिकट" : "per ticket";
 
   return (
     <motion.article
       onClick={onBuy}
-      whileHover={{ boxShadow: "0 0 28px rgba(255,153,0,0.18)" }}
-      transition={{ duration: 0.18 }}
-      className={`group sl-draw-card self-start cursor-pointer rounded-3xl bg-gradient-to-r p-[2px] ${accent}`}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{
+        y: -6,
+        boxShadow: `0 20px 60px ${theme.glow}, 0 0 0 1px ${theme.border}`,
+      }}
+      style={{
+        borderRadius: 24,
+        border: `1.5px solid ${theme.border}`,
+        background: "linear-gradient(160deg,#12101a 0%,#0c0b12 100%)",
+        cursor: "pointer",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        boxShadow: `0 4px 24px rgba(0,0,0,0.45)`,
+      }}
     >
-      <div className="flex flex-col overflow-hidden rounded-[22px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-        <div className="sl-popular-draw-card flex flex-col rounded-[22px] bg-[#120b0f] p-3 transition-[border-radius] duration-300 ease-out sm:p-4 group-hover:rounded-t-[22px] group-hover:rounded-b-[14px]">
-          <div className="flex items-start justify-between gap-2 sm:gap-3">
-            <p className="sl-ticket-draw-name min-w-0 flex-1 truncate text-[11px] font-semibold leading-snug sm:text-xs md:text-sm">
-              {draw.name}
-            </p>
-            <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
-              <div className="sl-ticket-draw-time-pill rounded-xl bg-white/10 px-2 py-1 text-right text-[9px] leading-tight text-zinc-100 sm:rounded-2xl sm:px-2.5 sm:py-1.5 sm:text-[10px] md:text-xs">
-                {drawTimeLabel}
-              </div>
-              <div className={`rounded-xl border px-2 py-1 text-[9px] font-bold sm:rounded-2xl sm:px-2.5 sm:py-1.5 sm:text-[10px] md:text-xs ${status.color}`}>
-                {status.label}
-              </div>
-            </div>
-          </div>
+      {/* Subtle top glow line */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          left: "15%",
+          right: "15%",
+          height: 1,
+          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
+          opacity: 0.6,
+        }}
+      />
 
-          <div className="sl-draw-prize-hero relative mt-3 overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.07] via-white/[0.02] to-transparent px-3 py-3 sm:px-4 sm:py-3.5">
-            <div
-              className={`pointer-events-none absolute inset-0 opacity-40 bg-gradient-to-r ${accent}`}
-              aria-hidden
-            />
-            <div className="relative flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-zinc-500 sm:text-[10px]">
-                  {prizeKicker}
-                </p>
-                <p className="mt-0.5 truncate text-[clamp(1.35rem,4vw,1.85rem)] font-extrabold leading-none tracking-tight text-amber-300 tabular-nums sm:text-[1.75rem]">
-                  {prize ?? "—"}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-[9px] font-medium text-zinc-500 sm:text-[10px]">
-                  {language === "hi" ? "टिकट" : "Per ticket"}
-                </p>
-                <p className="text-sm font-bold leading-tight text-white sm:text-base">
-                  ₹{draw.pricePerTicket.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-            <div
-              className="relative mt-2.5 flex items-center gap-2 border-t border-dashed border-white/10 pt-2.5"
-              aria-hidden
-            >
-              <span className="h-2 w-2 shrink-0 rounded-full bg-[#120b0f] ring-1 ring-white/15" />
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="h-2 w-2 shrink-0 rounded-full bg-[#120b0f] ring-1 ring-white/15" />
-            </div>
-          </div>
+      <div style={{ padding: "18px 18px 0", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
 
-         {pctLeft != null && ( 
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
-                {/* <span>
-                  {language === "hi" ? "केवल" : "Only"}{" "}
-                  <span className="text-amber-200">{draw.availableTickets.toLocaleString("en-IN")}</span>{" "}
-                  {onlyLeft}
-                </span> */}
-                {/* <span>{draw.totalTickets.toLocaleString("en-IN")} total</span> */}
-              </div>
-              <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full border border-emerald-200/15 bg-gradient-to-r from-emerald-950/70 via-amber-950/50 to-red-950/60 shadow-inner shadow-black/30">
-                <div className="sl-progress-fill h-full rounded-full" style={{ width: `${pctLeft}%` }} />
-              </div>
-              {soldPct != null && soldPct > 72 && (
-                <p className="mt-1 text-[9px] font-semibold text-orange-300/90">
-                  {language === "hi" ? "लगभग भर चुका" : "Selling fast"}
-                </p>
-              )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuy();
+        {/* Status badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              background: theme.badgeBg,
+              color: theme.badgeColor,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 999,
+              padding: "3px 10px",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontFamily: "'DM Sans', sans-serif",
             }}
-            className="mt-3 w-fit rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-amber-500/25 hover:text-amber-100 sm:mt-4 sm:px-4 sm:py-2 sm:text-xs"
           >
-            {buyLabel}
-          </button>
+            <span
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: theme.accent,
+                boxShadow: `0 0 6px ${theme.accent}`,
+                display: "inline-block",
+              }}
+            />
+            {statusLabel}
+          </span>
         </div>
+
+        {/* Draw name */}
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#f1f0f8",
+            fontFamily: "'DM Sans', sans-serif",
+            lineHeight: 1.3,
+            letterSpacing: "-0.01em",
+            margin: 0,
+          }}
+        >
+          {draw.name}
+        </p>
+
+        {/* Prize hero box */}
         <div
-          className={`h-0 shrink-0 overflow-hidden rounded-b-[22px] bg-gradient-to-r transition-[height] duration-300 ease-out group-hover:h-[36px] group-hover:rounded-t-[14px] ${accent}`}
-          aria-hidden
-        />
+          style={{
+            background: theme.prizeBg,
+            border: `1px solid ${theme.border}`,
+            borderRadius: 16,
+            padding: "14px 16px",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          {/* Corner shine */}
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              top: -30,
+              right: -30,
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              background: theme.accent,
+              opacity: 0.06,
+              filter: "blur(20px)",
+            }}
+          />
+          <p
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: theme.accent,
+              opacity: 0.75,
+              margin: "0 0 5px",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {prizeKicker}
+          </p>
+          <p
+            style={{
+              fontSize: "clamp(1.55rem, 4.5vw, 2rem)",
+              fontWeight: 800,
+              color: theme.prizeColor,
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              margin: 0,
+              fontFamily: "'Playfair Display', serif",
+            }}
+          >
+            {prize ?? "—"}
+          </p>
+
+          {/* Dashed divider */}
+          <div
+            aria-hidden
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              margin: "10px 0",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                border: `1.5px solid rgba(255,255,255,0.15)`,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                flex: 1,
+                borderTop: "1.5px dashed rgba(255,255,255,0.08)",
+              }}
+            />
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                border: `1.5px solid rgba(255,255,255,0.15)`,
+                flexShrink: 0,
+              }}
+            />
+          </div>
+
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              color: "rgba(255,255,255,0.38)",
+              margin: 0,
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {perTicketLabel}{" "}
+            <span style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>
+              ₹{draw.pricePerTicket.toLocaleString("en-IN")}
+            </span>
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        {pctLeft != null && (
+          <div>
+            <div
+              style={{
+                height: 5,
+                width: "100%",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.07)",
+                overflow: "hidden",
+              }}
+            >
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pctLeft}%` }}
+                transition={{ duration: 0.9, delay: index * 0.07 + 0.3, ease: "easeOut" }}
+                style={{
+                  height: "100%",
+                  borderRadius: 999,
+                  background: `linear-gradient(90deg, ${theme.accent}, ${theme.prizeColor})`,
+                }}
+              />
+            </div>
+            {soldPct != null && soldPct > 72 && (
+              <p
+                style={{
+                  marginTop: 4,
+                  fontSize: 9,
+                  fontWeight: 600,
+                  color: "#fb923c",
+                  fontFamily: "'DM Sans', sans-serif",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {language === "hi" ? "⚡ लगभग भर चुका" : "⚡ Selling fast"}
+              </p>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          padding: "14px 18px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          marginTop: 4,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 10,
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.35)",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          {drawTimeLabel}
+        </div>
+
+        <motion.button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onBuy();
+          }}
+          whileHover={{ scale: 1.04, boxShadow: `0 6px 22px ${theme.btnGlow}` }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            background: theme.btnBg,
+            border: "none",
+            borderRadius: 999,
+            padding: "8px 18px",
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#fff",
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            letterSpacing: "0.04em",
+            whiteSpace: "nowrap",
+            boxShadow: `0 4px 14px ${theme.btnGlow}`,
+          }}
+        >
+          {buyLabel}
+        </motion.button>
+      </div>
+
+      {/* Bottom accent bar on hover — achieved via a permanent thin bar */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
+          opacity: 0.5,
+        }}
+      />
     </motion.article>
   );
 }
