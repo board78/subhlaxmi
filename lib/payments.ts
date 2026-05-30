@@ -4,7 +4,7 @@ import { getDb } from "./mongodb";
 export type PendingPaymentDoc = {
   _id?: ObjectId;
   userId: ObjectId;
-  provider: "cashfree" | "razorpay";
+  provider: "cashfree" | "razorpay" | "qpc";
   orderId: string;
   orderAmount: number;
   currency: "INR";
@@ -15,7 +15,7 @@ export type PendingPaymentDoc = {
   processedAt?: Date;
 };
 
-export async function upsertPendingPayment(input: Omit<PendingPaymentDoc, "_id">) {
+export async function upsertPendingPayment(input: Omit<PendingPaymentDoc, "_id"> & { platOrderNo?: string }) {
   const db = await getDb();
   await db.collection<PendingPaymentDoc>("payments").updateOne(
     { provider: input.provider, orderId: input.orderId },
@@ -28,7 +28,7 @@ export async function upsertPendingPayment(input: Omit<PendingPaymentDoc, "_id">
 }
 
 export async function getPendingPayment(
-  provider: "cashfree" | "razorpay",
+  provider: "cashfree" | "razorpay" | "qpc",
   orderId: string,
 ) {
   const db = await getDb();
@@ -36,7 +36,7 @@ export async function getPendingPayment(
 }
 
 export async function markPaymentProcessed(
-  provider: "cashfree" | "razorpay",
+  provider: "cashfree" | "razorpay" | "qpc",
   orderId: string,
   status: PendingPaymentDoc["status"],
 ) {
