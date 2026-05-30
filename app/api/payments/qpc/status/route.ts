@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     const orderStatus = data.data?.orderStatus ?? "PENDING";
 
-    if (orderStatus === "SUCCESS" && pending.status !== "processed") {
+    if (orderStatus === "SUCCESS") {
       const cart = pending.cart as CartState;
       if (cart?.items?.length) {
         const db = await getDb();
@@ -92,7 +92,6 @@ export async function GET(request: NextRequest) {
 
       await markPaymentProcessed("qpc", orderId, "processed");
 
-      const cart = pending.cart as CartState;
       return NextResponse.json({
         status: "SUCCESS",
         draws: cart?.items?.map((i) => ({
