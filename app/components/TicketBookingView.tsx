@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaCheckCircle } from "react-icons/fa";
+import { HiTicket } from "react-icons/hi2";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { DrawPublic, SeriesStats, TicketPublic } from "@/lib/draws";
@@ -425,8 +427,10 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
           <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3">
             {selectedCount === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center text-zinc-600">
-                <span className="text-2xl">🎫</span>
-                <p className="text-xs font-semibold">No tickets selected yet</p>
+                <span className="text-zinc-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.15)] bg-white/5 p-3 rounded-full border border-white/5 inline-flex items-center justify-center">
+                  <HiTicket className="w-6 h-6 rotate-[15deg]" />
+                </span>
+                <p className="text-xs font-semibold mt-1">No tickets selected yet</p>
                 <p className="text-[11px] leading-5">
                   Click a ticket number from the grid or use Quick Pick to auto-select.
                 </p>
@@ -486,8 +490,11 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
                 animate={{ opacity: 1, scale: 1 }}
                 className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-3 text-[11px]"
               >
-                <p className="font-bold text-emerald-300">✅ Added to cart</p>
-                <p className="mt-1 text-zinc-300">Go to cart to pay and confirm.</p>
+                <p className="font-bold text-emerald-300 flex items-center gap-1.5">
+                  <FaCheckCircle className="w-3.5 h-3.5" />
+                  Added to cart
+                </p>
+                <p className="mt-1 text-zinc-300 ml-5">Go to cart to pay and confirm.</p>
               </motion.div>
             ) : null}
 
@@ -515,7 +522,7 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
                   : bookingState === "booking"
                     ? "Loading…"
                     : bookingState === "success"
-                      ? "Added ✓"
+                      ? "Added"
                       : selectedCount > 0
                         ? "Buy Now"
                         : "Select Tickets"}
@@ -569,7 +576,10 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
               <p className="mt-2 text-[11px] text-red-300">{bookingError}</p>
             )}
             {bookingState === "success" ? (
-              <p className="mt-2 text-[11px] text-emerald-300">✅ Added to cart</p>
+              <p className="mt-2 text-[11px] text-emerald-300 flex items-center justify-center gap-1">
+                <FaCheckCircle className="w-3 h-3" />
+                Added to cart
+              </p>
             ) : null}
           </motion.div>
         )}

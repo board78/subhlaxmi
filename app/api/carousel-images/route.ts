@@ -52,6 +52,6 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    return jsonError("Failed to add image", 500);
+    return jsonError(error instanceof Error ? error.message : "Failed to add image", 500);
   }
 }

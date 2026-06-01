@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaTrophy } from "react-icons/fa6";
 
 type Draw = {
   id: string;
@@ -582,9 +583,11 @@ export function ResultsManagement() {
           ))}
         </div>
       ) : results.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-16 text-center">
-          <span className="text-3xl">🏆</span>
-          <p className="mt-3 text-sm font-semibold text-zinc-300">No results declared yet</p>
+        <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-16 text-center flex flex-col items-center justify-center">
+          <div className="text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.3)] p-4 bg-white/5 rounded-full border border-white/5 flex items-center justify-center mb-3">
+            <FaTrophy className="w-8 h-8" />
+          </div>
+          <p className="text-sm font-semibold text-zinc-300">No results declared yet</p>
           <p className="mt-1 text-xs text-zinc-500">Use the button above to declare a lottery result.</p>
         </div>
       ) : (
@@ -605,8 +608,8 @@ export function ResultsManagement() {
                   {result.winnerImage ? (
                     <img src={result.winnerImage} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover border border-white/10" />
                   ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/12 text-lg">
-                      🏆
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/12 border border-amber-400/20 text-amber-400">
+                      <FaTrophy className="w-5 h-5" />
                     </span>
                   )}
 

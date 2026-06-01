@@ -11,6 +11,7 @@ import { DrawManagement } from "./components/DrawManagement";
 import { ResultsManagement } from "./components/ResultsManagement";
 import { BlogManagement } from "./components/BlogManagement";
 import { CarouselManagement } from "./components/CarouselManagement";
+import { TestimonialManagement } from "./components/TestimonialManagement";
 
 type AuthUser = { name: string; email: string; role: string };
 
@@ -34,6 +35,7 @@ export default function AdminPage() {
     results: <ResultsManagement />,
     blog: <BlogManagement />,
     carousel: <CarouselManagement />,
+    testimonials: <TestimonialManagement />,
   };
 
   return (

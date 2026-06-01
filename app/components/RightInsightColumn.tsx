@@ -14,15 +14,28 @@ type Props = {
 };
 
 export function RightInsightColumn({ currentCopy, countdown, nextDraw }: Props) {
+  const [testimonials, setTestimonials] = useState<any[]>(currentCopy.testimonials);
   const [activeIndex, setActiveIndex] = useState(0);
   const testimonialCanvasRef = useRef<HTMLCanvasElement>(null);
   const skipInitialConfetti = useRef(true);
 
+  // Load dynamic testimonials from API
+  useEffect(() => {
+    fetch("/api/testimonials")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.testimonials && data.testimonials.length > 0) {
+          setTestimonials(data.testimonials);
+        }
+      })
+      .catch(() => {});
+  }, [currentCopy.testimonials]);
+
   // Auto-rotate testimonials
   useEffect(() => {
-    const id = window.setInterval(() => setActiveIndex((i) => (i + 1) % currentCopy.testimonials.length), 4200);
+    const id = window.setInterval(() => setActiveIndex((i) => (i + 1) % testimonials.length), 4200);
     return () => window.clearInterval(id);
-  }, [currentCopy.testimonials.length]);
+  }, [testimonials.length]);
 
   // Confetti burst on testimonial change (skip the very first render)
   useEffect(() => {
@@ -43,7 +56,7 @@ export function RightInsightColumn({ currentCopy, countdown, nextDraw }: Props) 
     return () => { cancelled = true; };
   }, [activeIndex]);
 
-  const active = currentCopy.testimonials[activeIndex];
+  const active = testimonials[activeIndex] || currentCopy.testimonials[0];
 
   return (
     <motion.section
@@ -92,8 +105,8 @@ export function RightInsightColumn({ currentCopy, countdown, nextDraw }: Props) 
           </AnimatePresence>
 
           <div className="flex justify-center gap-1.5 pt-0.5">
-            {currentCopy.testimonials.map((item, i) => (
-              <button key={item.name} type="button" onClick={() => setActiveIndex(i)}
+            {testimonials.map((item, i) => (
+              <button key={item.id || item.name} type="button" onClick={() => setActiveIndex(i)}
                 className={`h-1.5 rounded-full transition sm:h-2 ${i === activeIndex ? "w-5 bg-amber-300 sm:w-6" : "w-1.5 bg-white/25 hover:bg-white/40"}`}
                 aria-label={`Show testimonial ${i + 1}`}
               />

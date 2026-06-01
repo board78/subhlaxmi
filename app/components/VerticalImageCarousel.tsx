@@ -9,8 +9,9 @@ import { useEffect, useRef, useState } from "react";
 // /api/carousel-images endpoint returns nothing.
 
 const STATIC_IMAGES = [
-  "/slider1.png", "/slider2.png", "/slider3.png", "/slider4.png",
-  "/slider5.png", "/slider7.png", "/slider8.png", "/slider9.png", "/slider10.png",
+  "/goddesslaxmi.png",
+  "/kuber.png",
+  "/winnerticket.png",
 ] as const;
 
 type Props = { className?: string; intervalMs?: number };
@@ -55,7 +56,7 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
 
   return (
     <div className={["relative flex w-full flex-col", className ?? ""].join(" ")}>
-      <div className="relative aspect-[1672/941] w-full overflow-hidden rounded-[22px] bg-black/20">
+      <div className="relative aspect-[1672/941] w-full max-w-3xl mx-auto overflow-hidden rounded-[22px] bg-black/20">
         <AnimatePresence mode="wait">
           {src && (
             <motion.div
@@ -70,9 +71,11 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
                 src={src}
                 alt={`Slider image ${activeIndex + 1}`}
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 1200px"
-                className="object-contain object-center"
-                priority={activeIndex === 0}
+                // sizes="(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 1200px"
+                sizes="100vw"
+                className="object-cover object-center"
+                // priority={activeIndex === 0}
+                priority={activeIndex <= 2}
               />
             </motion.div>
           )}

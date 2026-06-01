@@ -96,8 +96,8 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
     setUploadingImage(true);
     setError("");
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "subhlaxmi_preset";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.replace(/['"]/g, "");
+    const uploadPreset = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "subhlaxmi").replace(/['"]/g, "");
 
     if (!cloudName) {
       setError("Cloudinary configuration missing. Please add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME to your .env file.");
