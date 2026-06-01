@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,33 +16,6 @@ import type { SafeUser } from "@/lib/auth";
 
 const TICKET_PREVIEW = 12;
 
-/* ── Razorpay types ─────────────────────────────────────────── */
-type RazorpayOptions = {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill: { name: string; email: string };
-  theme: { color: string };
-  handler: (response: RazorpayPaymentResponse) => void;
-  modal: { ondismiss: () => void };
-};
-
-type RazorpayPaymentResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
-
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => { open: () => void };
-  }
-}
-/* ─────────────────────────────────────────────────────────── */
-
 function formatMoney(amount: number) {
   return amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -55,25 +27,14 @@ export default function CartPage() {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [error, setError] = useState("");
   const [expandedItem, setExpandedItem] = useState<CartTicketItem | null>(null);
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
-  /* ── Auth check ── */
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/profile");
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      }
-    };
-    checkAuth();
+    fetch("/api/profile")
+      .then(async (r) => r.ok ? (await r.json() as { user: SafeUser }) : null)
+      .then((d) => { if (d?.user) setUser(d.user); })
+      .catch(() => {});
   }, []);
 
-  /* ── Cart sync ── */
   useEffect(() => {
     const sync = () => setCart(getCart());
     window.addEventListener("subhlaxmi_cart_updated", sync);
@@ -84,12 +45,9 @@ export default function CartPage() {
     };
   }, []);
 
-  /* ── Escape key for modal ── */
   useEffect(() => {
     if (!expandedItem) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setExpandedItem(null);
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpandedItem(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [expandedItem]);
@@ -101,32 +59,21 @@ export default function CartPage() {
     }
   }, [cart.items, expandedItem]);
 
-  /* ── Totals ── */
   const totals = useMemo(() => {
-    const gstRate = 0.18;
     const subtotal = cart.items.reduce((sum, item) => sum + item.ticketNumbers.length * item.pricePerTicket, 0);
-    const gst = Math.round(subtotal * gstRate * 100) / 100;
+    const gst = Math.round(subtotal * 0.18 * 100) / 100;
     const grandTotal = Math.round((subtotal + gst) * 100) / 100;
     const totalTickets = cart.items.reduce((sum, item) => sum + item.ticketNumbers.length, 0);
     return { subtotal, gst, grandTotal, totalTickets };
   }, [cart.items]);
 
-  /* ── Razorpay Checkout ── */
   const startCheckout = async () => {
     setError("");
     if (!cart.items.length) return;
-
-    if (!razorpayLoaded || !window.Razorpay) {
-      const msg = "Payment SDK not loaded. Please refresh and try again.";
-      setError(msg);
-      toast.error("Payment SDK not ready", { description: msg });
-      return;
-    }
-
     setLoadingCheckout(true);
+
     try {
-      /* 1. Create order on server */
-      const res = await fetch("/api/payments/razorpay/create-order", {
+      const res = await fetch("/api/payments/qpc/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cart }),
@@ -138,67 +85,26 @@ export default function CartPage() {
       }
 
       const data = (await res.json()) as {
-        order_id?: string;
-        amount?: number;
-        currency?: string;
-        key_id?: string;
-        user?: { name: string; email: string };
+        paymentLink?: string;
+        merchantOrderNo?: string;
         error?: string;
       };
 
-      if (!res.ok || !data.order_id || !data.key_id) {
+      if (!res.ok || !data.paymentLink) {
         throw new Error(data.error ?? "Unable to create payment order.");
       }
 
-      /* 2. Open Razorpay checkout */
-      const rzp = new window.Razorpay({
-        key: data.key_id,
-        amount: data.amount!,
-        currency: data.currency ?? "INR",
-        name: "Subhlaxmi Lottery",
-        description: `${totals.totalTickets} ticket${totals.totalTickets > 1 ? "s" : ""}`,
-        order_id: data.order_id,
-        prefill: {
-          name: data.user?.name ?? user?.name ?? "",
-          email: data.user?.email ?? user?.email ?? "",
-        },
-        theme: { color: "#b45309" },
-        handler: async (response: RazorpayPaymentResponse) => {
-          /* 3. On payment success → verify on server */
-          try {
-            sessionStorage.setItem("rzp_payment_result", JSON.stringify(response));
-            router.push("/payment/razorpay");
-          } catch {
-            toast.error("Redirect failed. Please visit your profile to confirm booking.");
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoadingCheckout(false);
-            toast.info("Payment cancelled.");
-          },
-        },
-      });
-
-      rzp.open();
+      window.location.href = data.paymentLink;
     } catch (caught) {
       const msg = caught instanceof Error ? caught.message : "Checkout failed.";
       setError(msg);
       toast.error("Checkout failed", { description: msg });
       setLoadingCheckout(false);
     }
-    /* Note: setLoadingCheckout(false) is also called in modal.ondismiss and handler */
   };
 
   return (
     <div className="royal-surface royal-grid min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      {/* Razorpay SDK */}
-      <Script
-        src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="afterInteractive"
-        onLoad={() => setRazorpayLoaded(true)}
-      />
-
       <Navbar
         user={user}
         onAuthChange={(newUser) => {
@@ -216,21 +122,19 @@ export default function CartPage() {
               Review ticket numbers, then pay securely to confirm.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                clearCart();
-                setCart(getCart());
-                setExpandedItem(null);
-                setError("");
-                toast.success("Cart cleared");
-              }}
-              className="sl-cart-clear-btn rounded-full border border-white/12 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-200 hover:border-white/25"
-            >
-              Clear cart
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              clearCart();
+              setCart(getCart());
+              setExpandedItem(null);
+              setError("");
+              toast.success("Cart cleared");
+            }}
+            className="sl-cart-clear-btn rounded-full border border-white/12 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-200 hover:border-white/25"
+          >
+            Clear cart
+          </button>
         </div>
 
         <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
@@ -297,7 +201,7 @@ export default function CartPage() {
                     ))}
                   </div>
 
-                  {item.ticketNumbers.length > TICKET_PREVIEW ? (
+                  {item.ticketNumbers.length > TICKET_PREVIEW && (
                     <button
                       type="button"
                       className="sl-cart-more-btn mt-3 text-left text-xs font-semibold text-amber-600 underline decoration-amber-600/50 underline-offset-2 hover:text-amber-700"
@@ -305,7 +209,7 @@ export default function CartPage() {
                     >
                       +{item.ticketNumbers.length - TICKET_PREVIEW} more selected — view all
                     </button>
-                  ) : null}
+                  )}
 
                   <div className="sl-cart-price-row mt-4 flex items-center justify-between text-xs text-zinc-400">
                     <span>Price per ticket</span>
@@ -317,7 +221,9 @@ export default function CartPage() {
           </section>
 
           <aside className="sl-cart-aside mt-6 rounded-3xl border border-white/10 bg-[#0f0a0c] p-5 lg:mt-0 lg:self-start lg:sticky lg:top-24">
-            <p className="sl-cart-summary-title text-xs font-bold uppercase tracking-[0.18em] text-zinc-300">Order summary</p>
+            <p className="sl-cart-summary-title text-xs font-bold uppercase tracking-[0.18em] text-zinc-300">
+              Order summary
+            </p>
 
             <div className="mt-4 space-y-2 text-sm">
               <div className="sl-cart-row flex justify-between text-zinc-400">
@@ -338,11 +244,11 @@ export default function CartPage() {
               </div>
             </div>
 
-            {error ? (
+            {error && (
               <p className="sl-cart-error mt-4 rounded-2xl bg-red-950/30 px-4 py-3 text-sm leading-snug text-red-300">
                 {error}
               </p>
-            ) : null}
+            )}
 
             <button
               type="button"
@@ -350,25 +256,25 @@ export default function CartPage() {
               onClick={startCheckout}
               className="mt-5 w-full rounded-full sl-cta-gradient py-3 text-sm font-bold sl-force-light-text disabled:opacity-50"
             >
-              {loadingCheckout ? "Opening payment…" : "Buy & Pay Securely"}
+              {loadingCheckout ? "Redirecting to payment…" : "Buy & Pay Securely"}
             </button>
 
-            {/* Test mode badge */}
-            <div className="mt-3 flex items-center justify-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                🧪 Razorpay Test Mode
-              </span>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500" aria-hidden>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span className="text-[11px] font-semibold text-zinc-500">Secured by QPC · UPI · IMPS</span>
             </div>
 
-            <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-              After payment, your ticket booking will appear in your profile history.
+            <p className="mt-2 text-[11px] leading-5 text-zinc-600">
+              After payment, tickets appear in your profile instantly.
             </p>
           </aside>
         </div>
       </div>
 
-      {/* Expanded tickets modal */}
-      {expandedItem ? (
+      {expandedItem && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
           role="dialog"
@@ -429,7 +335,7 @@ export default function CartPage() {
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
