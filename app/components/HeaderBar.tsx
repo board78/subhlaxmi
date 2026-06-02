@@ -109,12 +109,11 @@ export function HeaderBar({
           >
             <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 pb-4 pt-5">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-300/90">
-                  {heroTitle}
-                </p>
-                <p className="mt-1 text-[10px] font-semibold uppercase leading-snug text-zinc-500">
-                  {governmentSubtitle}
-                </p>
+                <img
+                  src="/logo.png"
+                  alt="Subhlaxmi Logo"
+                  className="h-10 w-auto object-contain"
+                />
               </div>
               <button
                 type="button"
@@ -240,14 +239,13 @@ export function HeaderBar({
           <Link
             href="/"
             aria-label="Subhlaxmi — go to home"
-            className="sl-brand-lockup group flex min-w-0 flex-1 flex-col leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
+            className="sl-brand-lockup group flex min-w-0 flex-1 flex-col items-start leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
           >
-            <p className="sl-brand-title truncate text-base font-semibold uppercase tracking-[0.18em] text-amber-300 sm:text-lg">
-              {heroTitle}
-            </p>
-            <p className="sl-brand-subtitle mt-1 truncate text-[10px] font-semibold uppercase text-zinc-300/80">
-              {governmentSubtitle}
-            </p>
+            <img
+              src="/logo.png"
+              alt="Subhlaxmi Logo"
+              className="h-14 w-auto object-contain"
+            />
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <CartNavButton />
@@ -285,14 +283,13 @@ export function HeaderBar({
             <Link
               href="/"
               aria-label="Subhlaxmi — go to home"
-              className="sl-brand-lockup group flex flex-col leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
+              className="sl-brand-lockup group flex flex-col items-start leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
             >
-              <p className="sl-brand-title text-lg font-semibold uppercase tracking-[0.18em] text-amber-300">
-                {heroTitle}
-              </p>
-              <p className="sl-brand-subtitle mt-1 text-[10px] font-semibold uppercase text-zinc-300/80">
-                {governmentSubtitle}
-              </p>
+              <img
+                src="/logo.png"
+                alt="Subhlaxmi Logo"
+                className="h-16 w-auto object-contain"
+              />
             </Link>
 
             <nav className="flex items-center gap-2 text-xs font-semibold text-zinc-200" aria-label="Main">

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaShieldHalved, FaBoltLightning, FaWhatsapp } from "react-icons/fa6";
 
 interface FooterProps {
@@ -56,15 +57,40 @@ export function Footer({ language = "en" }: FooterProps) {
     { label: isHi ? "ज़िम्मेदारी से खेलें" : "Responsible Gaming", href: "#" },
   ];
 
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const toggleVisibility = () => {
+      if (window.scrollY > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    window.addEventListener("scroll", toggleVisibility);
+    // Initial check
+    toggleVisibility();
+
+    return () => window.removeEventListener("scroll", toggleVisibility);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   return (
     <footer className="royal-panel relative mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-[#14070f] p-6 md:p-8 lg:p-10 shadow-2xl">
-      
+
       {/* Background glow lines */}
       <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-amber-500/5 blur-3xl" />
       <div className="pointer-events-none absolute top-0 left-0 h-48 w-48 rounded-full bg-fuchsia-500/5 blur-3xl" />
 
       <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        
+
         {/* Brand column */}
         <div className="flex flex-col gap-3">
           <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-2xl font-black tracking-wider text-transparent uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
@@ -73,7 +99,7 @@ export function Footer({ language = "en" }: FooterProps) {
           <p className="text-xs text-zinc-400 leading-relaxed font-medium">
             {brandDesc}
           </p>
-          
+
           {/* 18+ badge & warning */}
           <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 shadow-inner">
             <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 uppercase tracking-wide">
@@ -134,7 +160,7 @@ export function Footer({ language = "en" }: FooterProps) {
             {colContact}
           </h4>
           <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-            {isHi 
+            {isHi
               ? "हमारे ग्राहक सपोर्ट चैनल लाइव हैं। भुगतान पूछताछ या सामान्य सहायता के लिए कभी भी पहुंचें।"
               : "Our customer support channels are live. Reach out anytime for payment inquiries or general assistance."}
           </p>
@@ -162,7 +188,7 @@ export function Footer({ language = "en" }: FooterProps) {
         <p className="text-[10px] font-semibold text-zinc-500 tracking-wide uppercase">
           &copy; {new Date().getFullYear()} Subhlaxmi. All rights reserved.
         </p>
-        
+
         {/* Security indicators */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wide">
@@ -175,6 +201,30 @@ export function Footer({ language = "en" }: FooterProps) {
           </span>
         </div>
       </div>
+
+      {/* Floating Go to Top Button */}
+      <AnimatePresence>
+        {isVisible && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={scrollToTop}
+            className="fixed bottom-5 right-5 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-zinc-950/60 text-zinc-400 backdrop-blur-md transition-all duration-200 hover:bg-zinc-900/80 hover:text-white active:scale-90 shadow-lg"
+            aria-label="Scroll to top"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3.5"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
     </footer>
   );

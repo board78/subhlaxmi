@@ -198,28 +198,18 @@ export default function Home() {
                 <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
 
                   {/* Hero carousel */}
-                  {/* <motion.section
-                    initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="royal-panel royal-panel-strong sl-hero-outline relative w-full overflow-hidden rounded-[24px] border-2 border-amber-500/35 bg-transparent px-5 pb-3 pt-5 sm:rounded-[28px] sm:px-6 sm:pt-6"
-                  >
-                    <PanelCorners />
-                    <div className="relative flex w-full flex-col items-center gap-4">
-                      <div className="relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-                        <VerticalImageCarousel className="p-0" intervalMs={3000} /> */}
                   <motion.section
                     initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
                     className="royal-panel royal-panel-strong sl-hero-outline relative w-full overflow-hidden rounded-[24px] border-2 border-amber-500/35 bg-transparent px-5 pb-3 pt-5 sm:rounded-[28px] sm:px-6 sm:pt-6"
                   >
-                    <PanelCorners />
-                    {/* <div className="relative flex w-full flex-col items-center gap-4"> */}
+                    {/* <PanelCorners /> */}
                     <div className="relative flex w-full flex-col items-center gap-4">
-                      <div className="relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+                      <div className="">
                         <VerticalImageCarousel className="p-0" intervalMs={3000} />
                       </div>
                       <div className="w-full max-w-4xl text-center">
-                        <p className="mx-auto mt-4 max-w-3xl text-xs font-medium leading-6 text-[var(--foreground)] opacity-[0.92] md:text-sm">
+                        <p className="mx-auto mt-4 max-w-3xl text-[10px] leading-4 font-medium text-[var(--foreground)] opacity-[0.92] sm:text-xs sm:leading-6 md:text-sm">
                           {currentCopy.heroDescription}
                         </p>
                       </div>
