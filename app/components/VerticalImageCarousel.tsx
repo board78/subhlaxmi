@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { CarouselMobile } from "./CarouselMobile";
+import { CarouselDesktop } from "./CarouselDesktop";
 const STATIC_IMAGES = [
   // "/goddesslaxmi.png",
   // "/kuber.png",
@@ -48,39 +48,28 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
   const src = images[activeIndex] ?? images[0];
 
   return (
-    <div className={[" flex w-full flex-col", className ?? ""].join(" ")}>
-      <div className="w-full overflow-hidden rounded-[22px] bg-black/20">
-
-        <AnimatePresence mode="wait">
-          {src && (
-            <motion.div
-              key={src}
-              initial={{ opacity: 0, y: 28, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -22, scale: 0.99 }}
-              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <img
-                src={src}
-                alt={`Slider image ${activeIndex + 1}`}
-                className="w-full h-auto block"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+    <>
+      {/* Mobile + Tablet Carousel - visible up to lg screen size */}
+      <div className="block lg:hidden w-full">
+        <CarouselMobile
+          src={src}
+          activeIndex={activeIndex}
+          images={images}
+          jumpTo={jumpTo}
+          className={className}
+        />
       </div>
 
-      {/* Dot navigation */}
-      <div className="mt-3 flex justify-center gap-1.5">
-        {images.map((_, i) => (
-          <button
-            key={i} type="button" onClick={() => jumpTo(i)}
-            className={`h-2 cursor-pointer rounded-full transition ${i === activeIndex ? "w-7 bg-amber-300" : "w-2 bg-white/25 hover:bg-white/40"}`}
-            aria-label={`Show slide ${i + 1}`}
-          />
-        ))}
+      {/* Desktop Carousel - visible from lg screen size upwards */}
+      <div className="hidden lg:block w-full">
+        <CarouselDesktop
+          src={src}
+          activeIndex={activeIndex}
+          images={images}
+          jumpTo={jumpTo}
+          className={className}
+        />
       </div>
-    </div>
+    </>
   );
 }
