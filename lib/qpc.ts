@@ -1,11 +1,12 @@
 import crypto from "crypto";
-import { normalizeEmail, normalizeIndianMobile } from "./auth";
 
 export const QPC_PAYIN_CREATE_URL =
   process.env.QPC_API_URL?.trim() || "https://portalquickpaycash.com/api/payin/create";
 
 export const QPC_PAYIN_STATUS_URL =
   process.env.QPC_STATUS_API_URL?.trim() || "https://portalquickpaycash.com/api/payin/status";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type QpcDeepLink = {
   upi_intent?: string;
@@ -17,6 +18,7 @@ export type QpcDeepLink = {
 export type QpcCreateData = {
   paymentLink?: string;
   paymentPageUrl?: string;
+  paymentUrl?: string;       // some QPC responses use this field name
   paymentImage?: string | null;
   platOrderNo?: string;
   orderStatus?: string;
@@ -40,6 +42,7 @@ export type QpcPayinStatusData = {
   amount?: number;
   merchantFee?: number;
   orderStatus?: string;
+  status?: string;           // demo uses 'status', docs use 'orderStatus'
   orderMessage?: string;
 };
 
@@ -49,30 +52,43 @@ export type QpcPayerInput = {
   phone?: string | null;
 };
 
+// ─── Signature ────────────────────────────────────────────────────────────────
+
 /** MD5(merchantId + merchantOrderNo + amount + merchantKey).toUpperCase() */
 export function qpcPayinSign(
   merchantId: string,
   merchantOrderNo: string,
   amount: string,
   merchantKey: string,
-) {
+): string {
   const raw = merchantId + merchantOrderNo + amount + merchantKey;
   return crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
 }
 
-export function verifyPayinCallbackSign(
-  merchantId: string,
+/**
+ * Verify webhook callback signature per QPC demo:
+ *   MD5(orderId + merchantOrderNo + status + merchantKey).toUpperCase()
+ *
+ * orderId    = body.orderId   || body.platOrderNo
+ * status     = body.status    || body.orderStatus
+ * signature  = body.signature || body.sign
+ */
+export function verifyCallbackSign(
+  orderId: string,
   merchantOrderNo: string,
-  amount: string | number | undefined,
-  sign: string,
+  status: string,
+  signature: string,
   merchantKey: string,
 ): boolean {
-  if (!sign?.trim()) return false;
-  const expected = qpcPayinSign(merchantId, merchantOrderNo, String(amount ?? ""), merchantKey);
-  return expected === sign.trim();
+  if (!signature?.trim()) return false;
+  const raw = orderId + merchantOrderNo + status + merchantKey;
+  const expected = crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
+  return expected === signature.trim().toUpperCase();
 }
 
-export function getQpcMerchantKey() {
+// ─── Credentials ──────────────────────────────────────────────────────────────
+
+export function getQpcMerchantKey(): string {
   return (
     process.env.QPC_MERCHANT_KEY?.trim() ||
     process.env.QPC_SECRET_KEY?.trim() ||
@@ -80,68 +96,40 @@ export function getQpcMerchantKey() {
   );
 }
 
-export function getQpcMerchantId() {
+export function getQpcMerchantId(): string {
   return process.env.QPC_MERCHANT_ID?.trim() ?? "";
 }
 
-/** Build optional payer fields per QPC docs — omit when not available. */
-export function buildPayinPayerFields(payer: QpcPayerInput): {
-  payerName?: string;
-  payerEmail?: string;
-  payerMobile?: string;
+// ─── Payer fields ─────────────────────────────────────────────────────────────
+
+/**
+ * Per QPC demo: always include all three payer fields.
+ * Fall back to 'Customer' / '' / '' when not available.
+ */
+export function buildPayerFields(payer: QpcPayerInput): {
+  payerName: string;
+  payerEmail: string;
+  payerMobile: string;
 } {
-  const out: { payerName?: string; payerEmail?: string; payerMobile?: string } = {};
-
   const name = typeof payer.name === "string" ? payer.name.trim().slice(0, 50) : "";
-  if (name.length >= 2) out.payerName = name;
+  const email = typeof payer.email === "string" ? payer.email.trim() : "";
+  const mobile = typeof payer.phone === "string" ? payer.phone.replace(/\D/g, "").slice(-10) : "";
 
-  const email = payer.email ? normalizeEmail(payer.email) : null;
-  if (email) out.payerEmail = email;
-
-  const mobile = payer.phone ? normalizeIndianMobile(payer.phone) : null;
-  if (mobile) out.payerMobile = mobile;
-
-  return out;
-}
-
-export function buildPayinCreateBody(input: {
-  merchantId: string;
-  merchantOrderNo: string;
-  amount: string;
-  currency: string;
-  signature: string;
-  returnUrl: string;
-  callbackUrl: string;
-  description?: string;
-  payer?: QpcPayerInput;
-}): Record<string, string> {
-  const body: Record<string, string> = {
-    merchantId: input.merchantId,
-    merchantOrderNo: input.merchantOrderNo,
-    amount: input.amount,
-    currency: input.currency,
-    returnUrl: input.returnUrl,
-    callbackUrl: input.callbackUrl,
-    signature: input.signature,
+  return {
+    payerName: name || "Customer",
+    payerEmail: email,
+    payerMobile: mobile,
   };
-
-  if (input.description?.trim()) {
-    body.description = input.description.trim().slice(0, 200);
-  }
-
-  const payerFields = buildPayinPayerFields(input.payer ?? {});
-  Object.assign(body, payerFields);
-
-  return body;
 }
 
+// ─── Checkout URL resolution ──────────────────────────────────────────────────
+
+/** Prefer paymentUrl → paymentPageUrl → paymentLink (first valid http/https URL). */
 export function resolveCheckoutUrl(data: QpcCreateData): string | null {
-  const page = data.paymentPageUrl?.trim();
-  if (page && (page.startsWith("http://") || page.startsWith("https://"))) return page;
-
-  const link = data.paymentLink?.trim();
-  if (link && (link.startsWith("http://") || link.startsWith("https://"))) return link;
-
+  for (const val of [data.paymentUrl, data.paymentPageUrl, data.paymentLink]) {
+    const v = val?.trim();
+    if (v && (v.startsWith("http://") || v.startsWith("https://"))) return v;
+  }
   return null;
 }
 
@@ -155,10 +143,12 @@ export function normalizeDeepLink(dl?: QpcDeepLink): QpcDeepLink | null {
   return Object.keys(out).length ? out : null;
 }
 
+// ─── HTTP helper ──────────────────────────────────────────────────────────────
+
 async function readQpcJson<T>(res: Response): Promise<{ ok: true; body: T } | { ok: false; error: string }> {
   const text = await res.text();
   if (!text.trim()) {
-    return { ok: false, error: `QPC returned empty (HTTP ${res.status}).` };
+    return { ok: false, error: `QPC returned empty body (HTTP ${res.status}).` };
   }
   if (text.trim().startsWith("<")) {
     return { ok: false, error: `QPC gateway error (HTTP ${res.status}).` };
@@ -181,13 +171,15 @@ async function readQpcJson<T>(res: Response): Promise<{ ok: true; body: T } | { 
       };
     }
     if (String(body.status) !== "200") {
-      return { ok: false, error: body.message ?? `QPC error (${body.status ?? "unknown"}).` };
+      return { ok: false, error: body.message ?? `QPC error (status ${body.status ?? "unknown"}).` };
     }
     return { ok: true, body };
   } catch {
     return { ok: false, error: `QPC unexpected response (HTTP ${res.status}).` };
   }
 }
+
+// ─── Create PayIn ─────────────────────────────────────────────────────────────
 
 export async function callQpcPayinCreate(input: {
   merchantId: string;
@@ -200,12 +192,29 @@ export async function callQpcPayinCreate(input: {
   description?: string;
   payer?: QpcPayerInput;
 }): Promise<{ ok: true; data: QpcCreateData } | { ok: false; error: string }> {
+  const payer = buildPayerFields(input.payer ?? {});
+
+  const payload: Record<string, string> = {
+    merchantId:      input.merchantId,
+    merchantOrderNo: input.merchantOrderNo,
+    amount:          input.amount,
+    currency:        input.currency,
+    payerName:       payer.payerName,
+    payerEmail:      payer.payerEmail,
+    payerMobile:     payer.payerMobile,
+    description:     input.description?.trim() || "Payment for order " + input.merchantOrderNo,
+    returnUrl:       input.returnUrl,
+    callbackUrl:     input.callbackUrl,
+    signature:       input.signature,
+  };
+
+  console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount);
+
   try {
-    const body = buildPayinCreateBody(input);
     const res = await fetch(QPC_PAYIN_CREATE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(30_000),
     });
 
@@ -214,6 +223,7 @@ export async function callQpcPayinCreate(input: {
     if (!parsed.body.data) {
       return { ok: false, error: parsed.body.message ?? "QPC did not return order data." };
     }
+    console.log("[QPC] PayIn response:", JSON.stringify(parsed.body.data));
     return { ok: true, data: parsed.body.data };
   } catch (err) {
     const error =
@@ -224,14 +234,24 @@ export async function callQpcPayinCreate(input: {
   }
 }
 
+// ─── Query PayIn Status ───────────────────────────────────────────────────────
+
+/**
+ * Per QPC demo: status check requires merchantId + signature (amount = "").
+ *   signature = MD5(merchantId + merchantOrderNo + "" + merchantKey).toUpperCase()
+ */
 export async function callQpcPayinStatus(
   merchantOrderNo: string,
 ): Promise<{ ok: true; data: QpcPayinStatusData } | { ok: false; error: string }> {
+  const merchantId = getQpcMerchantId();
+  const merchantKey = getQpcMerchantKey();
+  const signature = qpcPayinSign(merchantId, merchantOrderNo, "", merchantKey);
+
   try {
     const res = await fetch(QPC_PAYIN_STATUS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ merchantOrderNo }),
+      body: JSON.stringify({ merchantId, merchantOrderNo, signature }),
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
     });

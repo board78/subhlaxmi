@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, jsonError } from "@/lib/auth";
 import { upsertPendingPayment } from "@/lib/payments";
 import {
-  buildPayinPayerFields,
   callQpcPayinCreate,
   getQpcMerchantId,
   getQpcMerchantKey,
@@ -51,22 +50,14 @@ export async function POST(request: NextRequest) {
       return jsonError("QPC payment is not configured on the server.", 500);
     }
 
+    // Load real profile data from DB for payer fields
     const db = await getDb();
     const userDoc = await db.collection("users").findOne({ _id: new ObjectId(user.id) });
-    if (!userDoc) return jsonError("User profile not found.", 404);
-
-    const payerFields = buildPayinPayerFields({
-      name: userDoc.name,
-      email: userDoc.email,
-      phone: userDoc.phone,
-    });
-
-    if (!payerFields.payerMobile) {
-      return jsonError(
-        "Add your 10-digit mobile number in Profile before checkout.",
-        400,
-      );
-    }
+    const payer = {
+      name: (userDoc?.name as string | null) ?? user.name,
+      email: (userDoc?.email as string | null) ?? user.email,
+      phone: (userDoc?.phone as string | null) ?? null,
+    };
 
     const merchantOrderNo = `ORD${Date.now()}${Math.random().toString(16).slice(2, 6)}`.slice(0, 50);
     const amountStr = orderAmount.toFixed(2);
@@ -87,11 +78,7 @@ export async function POST(request: NextRequest) {
       returnUrl,
       callbackUrl,
       description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
-      payer: {
-        name: userDoc.name,
-        email: userDoc.email,
-        phone: userDoc.phone,
-      },
+      payer,
     });
 
     if (!qpcResult.ok) {
@@ -127,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       paymentLink: checkoutUrl,
-      paymentPageUrl: qpcResult.data.paymentPageUrl ?? null,
+      paymentPageUrl: qpcResult.data.paymentPageUrl ?? qpcResult.data.paymentUrl ?? null,
       upiId: qpcResult.data.paymentLink?.includes("@") ? qpcResult.data.paymentLink : null,
       deepLink,
       merchantOrderNo,
