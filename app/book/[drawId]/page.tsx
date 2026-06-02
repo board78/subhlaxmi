@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AuthModal } from "@/app/components/AuthModal";
-import { FrameOverlay } from "@/app/components/FrameOverlay";
+// import { FrameOverlay } from "@/app/components/FrameOverlay";
 import { HeaderBar, type HeaderBarProps } from "@/app/components/HeaderBar";
 import { ProfilePanel } from "@/app/components/ProfilePanel";
 import { TicketBookingView } from "@/app/components/TicketBookingView";
@@ -99,7 +99,7 @@ export default function BookDrawPage() {
         <div className="absolute right-[-10rem] top-[8rem] h-96 w-96 rounded-full bg-orange-500/16 blur-3xl" />
         <div className="absolute bottom-[-12rem] left-[20%] h-[26rem] w-[26rem] rounded-full bg-amber-300/12 blur-3xl" />
       </div>
-      <FrameOverlay />
+      {/* <FrameOverlay /> */}
 
       <main className="relative flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#17060d]/90 backdrop-blur-xl">
