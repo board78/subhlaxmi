@@ -15,6 +15,7 @@ import { Navbar } from "@/app/components/Navbar";
 import type { SafeUser } from "@/lib/auth";
 
 const TICKET_PREVIEW = 12;
+const EMPTY_CART: CartState = { items: [], updatedAt: new Date(0).toISOString() };
 
 function formatMoney(amount: number) {
   return amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,11 +23,17 @@ function formatMoney(amount: number) {
 
 export default function CartPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartState>(() => getCart());
+  const [cart, setCart] = useState<CartState>(EMPTY_CART);
+  const [cartReady, setCartReady] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [user, setUser] = useState<SafeUser | null>(null);
   const [error, setError] = useState("");
   const [expandedItem, setExpandedItem] = useState<CartTicketItem | null>(null);
+
+  useEffect(() => {
+    setCart(getCart());
+    setCartReady(true);
+  }, []);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -73,32 +80,65 @@ export default function CartPage() {
     setLoadingCheckout(true);
 
     try {
-      const res = await fetch("/api/payments/qpc/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart }),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/payments/qpc/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+          signal: AbortSignal.timeout(60_000),
+        });
+      } catch {
+        throw new Error(
+          "Could not reach the payment server. Keep the dev server running, refresh the page, and try again.",
+        );
+      }
 
       if (res.status === 401) {
         window.location.href = `/?auth=signin&next=${encodeURIComponent("/cart")}`;
         return;
       }
 
-      const data = (await res.json()) as {
-        paymentLink?: string;
+      const text = await res.text();
+      let data: {
+        paymentLink?: string | null;
+        paymentPageUrl?: string | null;
+        deepLink?: { upi_intent?: string; upi_phonepe?: string; upi_gpay?: string; upi_paytm?: string };
         merchantOrderNo?: string;
         error?: string;
       };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response from payment server.");
+      }
 
-      if (!res.ok || !data.paymentLink) {
+      if (!res.ok) {
         throw new Error(data.error ?? "Unable to create payment order.");
       }
 
-      window.location.href = data.paymentLink;
+      const webPayUrl = data.paymentLink ?? data.paymentPageUrl;
+      const hasUpi = Boolean(
+        data.deepLink?.upi_intent || data.deepLink?.upi_phonepe || data.deepLink?.upi_paytm,
+      );
+
+      if (webPayUrl) {
+        window.location.href = webPayUrl;
+        return;
+      }
+
+      if (hasUpi && data.merchantOrderNo) {
+        sessionStorage.setItem("qpc_checkout", JSON.stringify(data));
+        router.push(`/payment/checkout?orderId=${data.merchantOrderNo}`);
+        return;
+      }
+
+      throw new Error("QPC did not return a payment page or UPI link.");
     } catch (caught) {
       const msg = caught instanceof Error ? caught.message : "Checkout failed.";
       setError(msg);
       toast.error("Checkout failed", { description: msg });
+    } finally {
       setLoadingCheckout(false);
     }
   };
@@ -139,7 +179,12 @@ export default function CartPage() {
 
         <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
           <section className="sl-cart-scroll space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2">
-            {cart.items.length === 0 ? (
+            {!cartReady ? (
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-8 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
+                <p className="mt-3 text-sm text-zinc-500">Loading cart…</p>
+              </div>
+            ) : cart.items.length === 0 ? (
               <div className="rounded-3xl border border-white/10 bg-black/20 p-8 text-center">
                 <p className="text-lg font-semibold text-zinc-100">Cart is empty</p>
                 <p className="mt-2 text-sm text-zinc-500">Select ticket numbers from a draw and add them to cart.</p>
@@ -252,7 +297,7 @@ export default function CartPage() {
 
             <button
               type="button"
-              disabled={!cart.items.length || loadingCheckout}
+              disabled={!cartReady || !cart.items.length || loadingCheckout}
               onClick={startCheckout}
               className="mt-5 w-full rounded-full sl-cta-gradient py-3 text-sm font-bold sl-force-light-text disabled:opacity-50"
             >

@@ -44,8 +44,8 @@ function DeleteConfirm({
       >
         <p className="text-sm font-semibold text-white">Delete Draw</p>
         <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-          Are you sure you want to delete <span className="font-semibold text-zinc-200">&quot;{draw.name}&quot;</span>?
-          All associated tickets will still remain in the database.
+          Delete <span className="font-semibold text-zinc-200">&quot;{draw.name}&quot;</span>?
+          Available tickets and results for this draw will be removed. Deletion is blocked if any tickets are sold or reserved.
         </p>
         <div className="mt-5 flex gap-3">
           <button

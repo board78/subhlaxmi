@@ -20,6 +20,7 @@ export type SafeUser = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: "user" | "admin";
   settings: UserSettings;
   image?: string;
@@ -40,6 +41,7 @@ type UserDoc = {
   _id?: ObjectId;
   name: string;
   email: string;
+  phone?: string;
   passwordHash: string;
   emailVerifiedAt: Date;
   role: "user" | "admin";
@@ -116,6 +118,26 @@ export function validateName(name: unknown): string {
     throw new Error("Enter your full name.");
   }
   return name.trim().slice(0, 80);
+}
+
+/** Indian mobile: 10 digits, optional +91 prefix. Returns null if invalid. */
+export function normalizeIndianMobile(phone: unknown): string | null {
+  if (typeof phone !== "string") return null;
+  const digits = phone.replace(/\D/g, "");
+  const ten =
+    digits.length === 10
+      ? digits
+      : digits.length === 12 && digits.startsWith("91")
+        ? digits.slice(2)
+        : null;
+  if (!ten || !/^[6-9]\d{9}$/.test(ten)) return null;
+  return ten;
+}
+
+export function validateIndianMobile(phone: unknown): string {
+  const normalized = normalizeIndianMobile(phone);
+  if (!normalized) throw new Error("Enter a valid 10-digit Indian mobile number.");
+  return normalized;
 }
 
 export function jsonError(message: string, status = 400): NextResponse {
@@ -352,11 +374,24 @@ export async function getProfile(userId: string) {
 
 export async function updateProfileSettings(userId: string, input: unknown) {
   if (!input || typeof input !== "object") throw new Error("Invalid settings payload.");
-  const body = input as Partial<{ name: unknown; image: unknown; settings: Partial<UserSettings> }>;
+  const body = input as Partial<{
+    name: unknown;
+    phone: unknown;
+    image: unknown;
+    settings: Partial<UserSettings>;
+  }>;
 
   const $set: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof body.name === "string" && body.name.trim().length >= 2) {
     $set.name = body.name.trim().slice(0, 80);
+  }
+  const $unset: Record<string, ""> = {};
+  if (body.phone !== undefined) {
+    if (body.phone === null || body.phone === "") {
+      $unset.phone = "";
+    } else {
+      $set.phone = validateIndianMobile(body.phone);
+    }
   }
   if (typeof body.image === "string") {
     $set.image = body.image.trim();
@@ -375,7 +410,9 @@ export async function updateProfileSettings(userId: string, input: unknown) {
   }
 
   const db = await getDb();
-  await db.collection<UserDoc>("users").updateOne({ _id: new ObjectId(userId) }, { $set });
+  const update: { $set: Record<string, unknown>; $unset?: Record<string, ""> } = { $set };
+  if (Object.keys($unset).length) update.$unset = $unset;
+  await db.collection<UserDoc>("users").updateOne({ _id: new ObjectId(userId) }, update);
   return getProfile(userId);
 }
 
@@ -407,6 +444,7 @@ function toSafeUser(doc: UserDoc): SafeUser {
     id: doc._id.toString(),
     name: doc.name,
     email: doc.email,
+    phone: doc.phone,
     role: doc.role ?? "user",
     settings: doc.settings ?? { language: "en", marketingEmails: false, bookingAlerts: true },
     image: doc.image,

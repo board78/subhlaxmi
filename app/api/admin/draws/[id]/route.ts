@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, jsonError } from "@/lib/auth";
+import { deleteDrawWithCascade } from "@/lib/draw-cleanup";
 import { getDb } from "@/lib/mongodb";
 import type { DrawDoc } from "@/lib/draws";
 import { ObjectId } from "mongodb";
@@ -69,11 +70,16 @@ export async function DELETE(
     const { id } = await params;
     if (!ObjectId.isValid(id)) return jsonError("Invalid draw ID.");
 
-    const db = await getDb();
-    await db.collection<DrawDoc>("draws").deleteOne({ _id: new ObjectId(id) });
+    const result = await deleteDrawWithCascade(id);
 
-    return NextResponse.json({ message: "Draw deleted." });
+    return NextResponse.json({
+      message: "Draw deleted.",
+      ticketsDeleted: result.ticketsDeleted,
+      resultsDeleted: result.resultsDeleted,
+    });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Unable to delete draw.", 403);
+    const msg = error instanceof Error ? error.message : "Unable to delete draw.";
+    const status = msg.startsWith("Cannot delete") ? 409 : msg === "Draw not found." ? 404 : 403;
+    return jsonError(msg, status);
   }
 }

@@ -261,7 +261,28 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
                 </p>
               ) : null}
 
-              <section className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4">
+              <ContactDetailsSection
+                user={activeUser}
+                saving={saving}
+                onSave={async (payload) => {
+                  setSaving(true);
+                  setError("");
+                  try {
+                    const data = await fetchJson<ProfilePayload>("/api/profile", {
+                      method: "PATCH",
+                      body: JSON.stringify(payload),
+                    });
+                    setProfile(data);
+                    onUserUpdated(data.user);
+                  } catch (caught) {
+                    setError(caught instanceof Error ? caught.message : "Unable to save contact details.");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              />
+
+              <section className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-white">User Settings</h3>
@@ -364,6 +385,85 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
         </motion.div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+function ContactDetailsSection({
+  user,
+  saving,
+  onSave,
+}: {
+  user: SafeUser;
+  saving: boolean;
+  onSave: (payload: { name?: string; phone?: string }) => Promise<void>;
+}) {
+  const [name, setName] = useState(user.name);
+  const [phone, setPhone] = useState(user.phone ?? "");
+
+  useEffect(() => {
+    setName(user.name);
+    setPhone(user.phone ?? "");
+  }, [user.id, user.name, user.phone]);
+
+  const dirty = name.trim() !== user.name || phone.trim() !== (user.phone ?? "");
+
+  return (
+    <section className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4">
+      <h3 className="font-semibold text-white">Contact details</h3>
+      <p className="mt-1 text-xs leading-5 text-zinc-500">
+        Used for UPI payments at checkout. Email is from your account sign-in.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        <label className="block">
+          <span className="text-xs font-medium text-zinc-400">Full name</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={80}
+            className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/40"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-medium text-zinc-400">Email</span>
+          <input
+            type="email"
+            value={user.email}
+            readOnly
+            className="mt-1.5 w-full rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5 text-sm text-zinc-500"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-medium text-zinc-400">Mobile (10 digits)</span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="9876543210"
+            maxLength={14}
+            className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/40"
+          />
+        </label>
+
+        <button
+          type="button"
+          disabled={!dirty || saving}
+          onClick={() =>
+            onSave({
+              name: name.trim(),
+              phone: phone.trim() || "",
+            })
+          }
+          className="w-full rounded-full bg-amber-300 px-4 py-2.5 text-sm font-bold text-[#2d1400] transition hover:bg-amber-200 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save contact details"}
+        </button>
+      </div>
+    </section>
   );
 }
 
