@@ -4,6 +4,7 @@ import { getSessionUser, jsonError } from "@/lib/auth";
 import { getPendingPayment, markPaymentProcessed } from "@/lib/payments";
 import { bookTicketsByNumbers } from "@/lib/draws";
 import { getDb } from "@/lib/mongodb";
+import { callQpcPayinStatus } from "@/lib/qpc";
 
 type CartTicketItem = {
   drawId: string;
@@ -19,6 +20,31 @@ type CartState = {
   updatedAt: string;
 };
 
+async function fulfillOrder(userId: string, cart: CartState) {
+  const db = await getDb();
+  const userObjectId = new ObjectId(userId);
+
+  for (const item of cart.items) {
+    const booking = await bookTicketsByNumbers(userId, item.drawId, item.ticketNumbers);
+    const bookedNumbers = booking.booked.map((t) => t.number);
+
+    if (bookedNumbers.length) {
+      const bookedAt = new Date();
+      await db.collection("tickets").insertMany(
+        bookedNumbers.map((ticketNumber) => ({
+          userId: userObjectId,
+          drawName: item.drawName,
+          prize: `₹${item.pricePerTicket} + GST`,
+          drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
+          ticketNumber,
+          status: "draw_pending",
+          bookedAt,
+        })),
+      );
+    }
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getSessionUser(request);
@@ -31,15 +57,17 @@ export async function GET(request: NextRequest) {
     if (!pending) return jsonError("Order not found.", 404);
     if (pending.userId.toString() !== user.id) return jsonError("Unauthorized.", 403);
 
+    const cart = pending.cart as CartState;
+
     if (pending.status === "processed") {
-      const cart = pending.cart as CartState;
       return NextResponse.json({
         status: "SUCCESS",
-        draws: cart?.items?.map((i) => ({
-          name: i.drawName,
-          tickets: i.ticketNumbers.length,
-          numbers: i.ticketNumbers.slice(0, 6),
-        })) ?? [],
+        draws:
+          cart?.items?.map((i) => ({
+            name: i.drawName,
+            tickets: i.ticketNumbers.length,
+            numbers: i.ticketNumbers.slice(0, 6),
+          })) ?? [],
         amount: pending.orderAmount,
       });
     }
@@ -48,57 +76,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ status: "FAILED" });
     }
 
-    const res = await fetch("https://portalquickpaycash.com/api/payin/status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ merchantOrderNo: orderId }),
-      cache: "no-store",
-    });
-
-    const data = (await res.json()) as {
-      status?: string;
-      message?: string;
-      data?: { orderStatus?: string; amount?: number; utr?: string };
-    };
-
-    const orderStatus = data.data?.orderStatus ?? "PENDING";
+    const qpcStatus = await callQpcPayinStatus(orderId);
+    const orderStatus = qpcStatus.ok
+      ? (qpcStatus.data.orderStatus ?? "PENDING")
+      : "PENDING";
 
     if (orderStatus === "SUCCESS") {
-      const cart = pending.cart as CartState;
       if (cart?.items?.length) {
-        const db = await getDb();
-        const userId = new ObjectId(pending.userId);
-
-        for (const item of cart.items) {
-          const booking = await bookTicketsByNumbers(user.id, item.drawId, item.ticketNumbers);
-          const bookedNumbers = booking.booked.map((t) => t.number);
-
-          if (bookedNumbers.length) {
-            const bookedAt = new Date();
-            await db.collection("tickets").insertMany(
-              bookedNumbers.map((ticketNumber) => ({
-                userId,
-                drawName: item.drawName,
-                prize: `₹${item.pricePerTicket} + GST`,
-                drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
-                ticketNumber,
-                status: "draw_pending",
-                bookedAt,
-              })),
-            );
-          }
-        }
+        await fulfillOrder(user.id, cart);
       }
-
       await markPaymentProcessed("qpc", orderId, "processed");
 
       return NextResponse.json({
         status: "SUCCESS",
-        draws: cart?.items?.map((i) => ({
-          name: i.drawName,
-          tickets: i.ticketNumbers.length,
-          numbers: i.ticketNumbers.slice(0, 6),
-        })) ?? [],
+        draws:
+          cart?.items?.map((i) => ({
+            name: i.drawName,
+            tickets: i.ticketNumbers.length,
+            numbers: i.ticketNumbers.slice(0, 6),
+          })) ?? [],
         amount: pending.orderAmount,
       });
     }

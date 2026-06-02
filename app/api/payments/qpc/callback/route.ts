@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { getPendingPayment, markPaymentProcessed } from "@/lib/payments";
 import { bookTicketsByNumbers } from "@/lib/draws";
 import { getDb } from "@/lib/mongodb";
+import {
+  getQpcMerchantId,
+  getQpcMerchantKey,
+  verifyPayinCallbackSign,
+} from "@/lib/qpc";
 
 type CartTicketItem = {
   drawId: string;
@@ -19,34 +23,42 @@ type CartState = {
   updatedAt: string;
 };
 
-function qpcSign(merchantId: string, merchantOrderNo: string, amount: string, secretKey: string) {
-  const raw = merchantId + merchantOrderNo + amount + secretKey;
-  return crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
-}
+type QpcCallbackBody = {
+  merchantNo?: string;
+  merchantOrderNo?: string;
+  platOrderNo?: string;
+  orderStatus?: string;
+  orderMessage?: string;
+  amount?: number | string;
+  merchantFee?: number;
+  utr?: string;
+  sign?: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      merchantNo?: string;
-      merchantOrderNo?: string;
-      platOrderNo?: string;
-      orderStatus?: string;
-      amount?: number | string;
-      merchantFee?: number;
-      utr?: string;
-      sign?: string;
-    };
+    const body = (await request.json()) as QpcCallbackBody;
 
-    const merchantId = process.env.QPC_MERCHANT_ID;
-    const secretKey = process.env.QPC_SECRET_KEY;
-    if (!merchantId || !secretKey) return new NextResponse("Not configured", { status: 500 });
+    const merchantId = getQpcMerchantId();
+    const merchantKey = getQpcMerchantKey();
+    if (!merchantId || !merchantKey) {
+      return new NextResponse("Not configured", { status: 500 });
+    }
 
     const { merchantOrderNo, orderStatus, amount, sign } = body;
-    if (!merchantOrderNo || !sign) return new NextResponse("Bad request", { status: 400 });
+    const merchantNo = body.merchantNo?.trim();
 
-    const expectedSign = qpcSign(merchantId, merchantOrderNo, String(amount ?? ""), secretKey);
-    if (expectedSign !== sign) {
-      console.error("QPC callback: invalid signature for order", merchantOrderNo);
+    if (!merchantOrderNo || !sign) {
+      return new NextResponse("Bad request", { status: 400 });
+    }
+
+    if (merchantNo && merchantNo !== merchantId) {
+      console.error("[QPC callback] merchantNo mismatch:", merchantNo);
+      return new NextResponse("Invalid merchant", { status: 400 });
+    }
+
+    if (!verifyPayinCallbackSign(merchantId, merchantOrderNo, amount, sign, merchantKey)) {
+      console.error("[QPC callback] invalid signature for order", merchantOrderNo);
       return new NextResponse("Invalid signature", { status: 400 });
     }
 
@@ -74,7 +86,11 @@ export async function POST(request: NextRequest) {
     const userId = new ObjectId(pending.userId);
 
     for (const item of cart.items) {
-      const booking = await bookTicketsByNumbers(pending.userId.toString(), item.drawId, item.ticketNumbers);
+      const booking = await bookTicketsByNumbers(
+        pending.userId.toString(),
+        item.drawId,
+        item.ticketNumbers,
+      );
       const bookedNumbers = booking.booked.map((t) => t.number);
 
       if (bookedNumbers.length) {
@@ -96,7 +112,7 @@ export async function POST(request: NextRequest) {
     await markPaymentProcessed("qpc", merchantOrderNo, "processed");
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
-    console.error("QPC callback error:", error);
+    console.error("[QPC callback] error:", error);
     return new NextResponse("OK", { status: 200 });
   }
 }

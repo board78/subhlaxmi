@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { getSessionUser, jsonError } from "@/lib/auth";
 import { upsertPendingPayment } from "@/lib/payments";
+import {
+  buildPayinPayerFields,
+  callQpcPayinCreate,
+  getQpcMerchantId,
+  getQpcMerchantKey,
+  normalizeDeepLink,
+  qpcPayinSign,
+  resolveCheckoutUrl,
+} from "@/lib/qpc";
+import { getPublicAppOrigin } from "@/lib/utils";
 import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
 
 type CartTicketItem = {
   drawId: string;
@@ -17,11 +27,6 @@ type CartState = {
   items: CartTicketItem[];
   updatedAt: string;
 };
-
-function qpcSign(merchantId: string, merchantOrderNo: string, amount: string, secretKey: string) {
-  const raw = merchantId + merchantOrderNo + amount + secretKey;
-  return crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,69 +45,97 @@ export async function POST(request: NextRequest) {
     const orderAmount = Math.round((subtotal + gst) * 100) / 100;
     if (orderAmount <= 0) return jsonError("Invalid cart total.");
 
-    const merchantId = process.env.QPC_MERCHANT_ID;
-    const secretKey = process.env.QPC_SECRET_KEY;
-    if (!merchantId || !secretKey) return jsonError("QPC payment is not configured on the server.", 500);
+    const merchantId = getQpcMerchantId();
+    const merchantKey = getQpcMerchantKey();
+    if (!merchantId || !merchantKey) {
+      return jsonError("QPC payment is not configured on the server.", 500);
+    }
 
-    const merchantOrderNo = `sl${Date.now()}${Math.random().toString(16).slice(2, 7)}`.slice(0, 48);
+    const db = await getDb();
+    const userDoc = await db.collection("users").findOne({ _id: new ObjectId(user.id) });
+    if (!userDoc) return jsonError("User profile not found.", 404);
+
+    const payerFields = buildPayinPayerFields({
+      name: userDoc.name,
+      email: userDoc.email,
+      phone: userDoc.phone,
+    });
+
+    if (!payerFields.payerMobile) {
+      return jsonError(
+        "Add your 10-digit mobile number in Profile before checkout.",
+        400,
+      );
+    }
+
+    const merchantOrderNo = `ORD${Date.now()}${Math.random().toString(16).slice(2, 6)}`.slice(0, 50);
     const amountStr = orderAmount.toFixed(2);
 
-    const origin = request.nextUrl.origin;
+    const origin = getPublicAppOrigin(request);
     const returnUrl = `${origin}/payment-status?orderId=${merchantOrderNo}`;
     const callbackUrl = `${origin}/api/payments/qpc/callback`;
 
-    const signature = qpcSign(merchantId, merchantOrderNo, amountStr, secretKey);
-
+    const signature = qpcPayinSign(merchantId, merchantOrderNo, amountStr, merchantKey);
     const totalTickets = cart.items.reduce((s, i) => s + i.ticketNumbers.length, 0);
 
-    const res = await fetch("https://portalquickpaycash.com/api/payin/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        merchantId,
-        merchantOrderNo,
-        amount: amountStr,
-        currency: "INR",
-        payerName: user.name ?? "",
-        payerEmail: user.email ?? "",
-        payerMobile: "9999999999",
-        description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
-        returnUrl,
-        callbackUrl,
-        signature,
-      }),
+    const qpcResult = await callQpcPayinCreate({
+      merchantId,
+      merchantOrderNo,
+      amount: amountStr,
+      currency: "INR",
+      signature,
+      returnUrl,
+      callbackUrl,
+      description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
+      payer: {
+        name: userDoc.name,
+        email: userDoc.email,
+        phone: userDoc.phone,
+      },
     });
 
-    const data = (await res.json()) as {
-      status?: string;
-      message?: string;
-      data?: { paymentLink?: string; platOrderNo?: string };
-    };
+    if (!qpcResult.ok) {
+      console.error("[QPC create-order]", qpcResult.error);
+      return NextResponse.json({ error: qpcResult.error }, { status: 502 });
+    }
 
-    if (data.status !== "200" || !data.data?.paymentLink) {
+    const checkoutUrl = resolveCheckoutUrl(qpcResult.data);
+    const deepLink = normalizeDeepLink(qpcResult.data.deepLink);
+
+    if (!checkoutUrl && !deepLink?.upi_intent) {
       return NextResponse.json(
-        { error: data.message ?? "Unable to create QPC payment order." },
+        { error: "QPC did not return a payment page or UPI deep link. Contact QPC support." },
         { status: 502 },
       );
     }
 
-    await upsertPendingPayment({
-      provider: "qpc",
-      orderId: merchantOrderNo,
-      orderAmount,
-      currency: "INR",
-      cart,
-      status: "created",
-      userId: new ObjectId(user.id),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    try {
+      await upsertPendingPayment({
+        provider: "qpc",
+        orderId: merchantOrderNo,
+        orderAmount,
+        currency: "INR",
+        cart,
+        status: "created",
+        userId: new ObjectId(user.id),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (dbErr) {
+      console.error("[QPC create-order] MongoDB save failed:", dbErr);
+    }
 
     return NextResponse.json({
-      paymentLink: data.data.paymentLink,
+      paymentLink: checkoutUrl,
+      paymentPageUrl: qpcResult.data.paymentPageUrl ?? null,
+      upiId: qpcResult.data.paymentLink?.includes("@") ? qpcResult.data.paymentLink : null,
+      deepLink,
       merchantOrderNo,
+      platOrderNo: qpcResult.data.platOrderNo ?? null,
     });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Unable to create payment order.");
+    const msg = error instanceof Error ? error.message : "Unable to create payment order.";
+    console.error("[QPC create-order] exception:", msg);
+    return jsonError(msg);
   }
 }

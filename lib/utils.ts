@@ -84,3 +84,20 @@ export function parseDrawDateTime(drawDate: string | Date, drawTime: string): Da
   }
   return date;
 }
+
+export function getPublicAppOrigin(request?: { nextUrl: { origin: string }; headers: Headers }): string {
+  let base = process.env.APP_URL?.trim() || "";
+  if (!base && request) {
+    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+    if (proto && host) base = `${proto}://${host}`;
+    else base = request.nextUrl.origin;
+  }
+  if (!base) base = "https://bookmysubhlaxmi.com";
+
+  base = base.replace(/\/$/, "");
+  if (base.startsWith("http://")) base = `https://${base.slice(7)}`;
+  if (!base.startsWith("https://")) base = `https://${base.replace(/^\/+/, "")}`;
+
+  return base;
+}
