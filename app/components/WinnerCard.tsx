@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { IoSparkles } from "react-icons/io5";
 
 // ─── WinnerCard ───────────────────────────────────────────────────────────────
 // Shows one winner's name, avatar and prize with a confetti burst on hover.
@@ -71,7 +72,9 @@ export function WinnerCard({ winnerName, imageUrl, amount, gradientClass, burstK
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/8 text-[11px]">🎉</span>
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/8 text-amber-400">
+                <IoSparkles className="w-3 h-3" />
+              </span>
               <span className="font-semibold text-zinc-300">Congratulations!</span>
             </div>
           </div>

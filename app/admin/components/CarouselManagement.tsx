@@ -68,8 +68,8 @@ export function CarouselManagement() {
     setUploadProgress({ current: 1, total: validFiles.length });
     setError("");
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "subhlaxmi_preset";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.replace(/['"]/g, "");
+    const uploadPreset = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "subhlaxmi").replace(/['"]/g, "");
 
     if (!cloudName) {
       setError("Cloudinary configuration missing. Check environment variables.");
@@ -106,7 +106,10 @@ export function CarouselManagement() {
           body: JSON.stringify({ url: imageUrl, order: currentOrder }),
         });
 
-        if (!dbRes.ok) throw new Error(`Failed to save ${file.name} to database`);
+        if (!dbRes.ok) {
+          const errData = await dbRes.json().catch(() => null);
+          throw new Error(errData?.error || `Failed to save ${file.name} to database`);
+        }
         const newImgData = await dbRes.json();
         uploadedImages.push(newImgData.image);
         currentOrder++;

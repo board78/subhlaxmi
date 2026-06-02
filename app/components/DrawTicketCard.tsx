@@ -3,75 +3,6 @@
 import { motion } from "framer-motion";
 import type { DrawSummaryPublic } from "@/lib/draws";
 
-const THEMES = [
-  {
-    accent: "#7c6fff",
-    glow: "rgba(124,111,255,0.22)",
-    border: "rgba(124,111,255,0.35)",
-    prizeBg: "rgba(124,111,255,0.10)",
-    prizeColor: "#c4baff",
-    badgeBg: "rgba(124,111,255,0.18)",
-    badgeColor: "#a89fff",
-    btnBg: "linear-gradient(135deg,#6c5fff,#4f46e5)",
-    btnGlow: "rgba(108,95,255,0.45)",
-  },
-  {
-    accent: "#f4506a",
-    glow: "rgba(244,80,106,0.20)",
-    border: "rgba(244,80,106,0.30)",
-    prizeBg: "rgba(244,80,106,0.09)",
-    prizeColor: "#ffaab8",
-    badgeBg: "rgba(244,80,106,0.16)",
-    badgeColor: "#ff8fa0",
-    btnBg: "linear-gradient(135deg,#e11d48,#be123c)",
-    btnGlow: "rgba(225,29,72,0.45)",
-  },
-  {
-    accent: "#10b981",
-    glow: "rgba(16,185,129,0.20)",
-    border: "rgba(16,185,129,0.28)",
-    prizeBg: "rgba(16,185,129,0.09)",
-    prizeColor: "#6ee7b7",
-    badgeBg: "rgba(16,185,129,0.16)",
-    badgeColor: "#34d399",
-    btnBg: "linear-gradient(135deg,#059669,#047857)",
-    btnGlow: "rgba(5,150,105,0.45)",
-  },
-  {
-    accent: "#f59e0b",
-    glow: "rgba(245,158,11,0.20)",
-    border: "rgba(245,158,11,0.28)",
-    prizeBg: "rgba(245,158,11,0.09)",
-    prizeColor: "#fcd34d",
-    badgeBg: "rgba(245,158,11,0.14)",
-    badgeColor: "#fbbf24",
-    btnBg: "linear-gradient(135deg,#d97706,#b45309)",
-    btnGlow: "rgba(217,119,6,0.45)",
-  },
-  {
-    accent: "#06b6d4",
-    glow: "rgba(6,182,212,0.20)",
-    border: "rgba(6,182,212,0.28)",
-    prizeBg: "rgba(6,182,212,0.09)",
-    prizeColor: "#67e8f9",
-    badgeBg: "rgba(6,182,212,0.14)",
-    badgeColor: "#22d3ee",
-    btnBg: "linear-gradient(135deg,#0891b2,#0e7490)",
-    btnGlow: "rgba(8,145,178,0.45)",
-  },
-  {
-    accent: "#e879f9",
-    glow: "rgba(232,121,249,0.20)",
-    border: "rgba(232,121,249,0.28)",
-    prizeBg: "rgba(232,121,249,0.09)",
-    prizeColor: "#f0abfc",
-    badgeBg: "rgba(232,121,249,0.14)",
-    badgeColor: "#e879f9",
-    btnBg: "linear-gradient(135deg,#a21caf,#86198f)",
-    btnGlow: "rgba(162,28,175,0.45)",
-  },
-];
-
 function formatPrize(raw?: string, language: "en" | "hi" = "en") {
   if (!raw?.trim()) return null;
   const digits = raw.replace(/[^\d]/g, "");
@@ -104,7 +35,6 @@ type Props = {
 };
 
 export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props) {
-  const theme = THEMES[index % THEMES.length];
   const prize = formatPrize(draw.prizeAmount, language);
   const drawDate = new Date(draw.drawDate);
   const drawTimeLabel = `${drawDate.toLocaleDateString("en-IN", {
@@ -112,20 +42,41 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
     month: "short",
   })} · ${draw.drawTime}`;
 
-  const pctLeft =
-    draw.totalTickets > 0
-      ? Math.max(0, Math.min(100, (draw.availableTickets / draw.totalTickets) * 100))
-      : null;
-  const soldPct = pctLeft != null ? 100 - pctLeft : null;
+  const total = draw.totalTickets || 500;
+  const available = draw.availableTickets ?? 500;
+  const sold = Math.max(0, total - available);
+  const soldPercent = total > 0 ? Math.min(100, Math.max(0, (sold / total) * 100)) : 0;
 
-  const statusMap: Record<string, { label: string }> = {
-    active:   { label: language === "hi" ? "सक्रिय"      : "Active"    },
-    upcoming: { label: language === "hi" ? "आने वाली"    : "Upcoming"  },
-    closed:   { label: language === "hi" ? "बंद"          : "Closed"    },
-    drawn:    { label: language === "hi" ? "निकाला गया"  : "Drawn"     },
+  const statusMap: Record<string, { label: string; bg: string; color: string }> = {
+    active: {
+      label: language === "hi" ? "सक्रिय" : "Active",
+      bg: "rgba(16, 185, 129, 0.15)",
+      color: "#34D399",
+    },
+    upcoming: {
+      label: language === "hi" ? "आने वाली" : "Upcoming",
+      bg: "#2ECC71",
+      color: "#022C22",
+    },
+    closed: {
+      label: language === "hi" ? "बंद" : "Closed",
+      bg: "rgba(239, 68, 68, 0.15)",
+      color: "#F87171",
+    },
+    drawn: {
+      label: language === "hi" ? "निकाला गया" : "Drawn",
+      bg: "rgba(156, 163, 175, 0.15)",
+      color: "#D1D5DB",
+    },
   };
-  const statusLabel = statusMap[draw.status]?.label ?? draw.status;
-  const prizeKicker = language === "hi" ? "पहला पुरस्कार" : "First Prize";
+
+  const currentStatus = statusMap[draw.status] || {
+    label: draw.status,
+    bg: "#2ECC71",
+    color: "#022C22",
+  };
+
+  const prizeKicker = language === "hi" ? "पहला पुरस्कार जैकपॉट" : "FIRST PRIZE JACKPOT";
   const perTicketLabel = language === "hi" ? "प्रति टिकट" : "per ticket";
 
   return (
@@ -135,300 +86,333 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{
-        y: -6,
-        boxShadow: `0 20px 60px ${theme.glow}, 0 0 0 1px ${theme.border}`,
+        y: -4,
+        borderColor: "#FFD700",
+        boxShadow: "0 15px 30px rgba(230, 184, 0, 0.2), 0 0 15px rgba(255, 215, 0, 0.1)",
       }}
       style={{
-        borderRadius: 24,
-        border: `1.5px solid ${theme.border}`,
-        background: "linear-gradient(160deg,#12101a 0%,#0c0b12 100%)",
+        width: "100%",
+        // maxWidth: 320, // Super premium compact width
+        // margin: "0 auto",
+        // width: "100%",
+        borderRadius: 20,
+        border: "1.2px solid rgba(230, 184, 0, 0.4)", // Thin gold border
+        background: "linear-gradient(180deg, #1A1D24 0%, #111317 100%)", // Deep charcoal/slate black background
         cursor: "pointer",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        boxShadow: `0 4px 24px rgba(0,0,0,0.45)`,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+        padding: 18, // Reduced padding for tighter spacing
+        transition: "border-color 0.3s ease, box-shadow 0.3s ease",
       }}
     >
-      {/* Subtle top glow line */}
+      {/* Top Header Row with Status Badge */}
+      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 6 }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
+            background: currentStatus.bg,
+            color: currentStatus.color,
+            borderRadius: 999,
+            padding: "3px 9px",
+            fontSize: 9, // Smaller font size
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            fontFamily: "'DM Sans', sans-serif",
+            boxShadow: draw.status === "upcoming" ? "0 0 8px rgba(46, 204, 113, 0.25)" : "none",
+          }}
+        >
+          <span style={{ fontSize: 10 }}>✧</span>
+          {currentStatus.label}
+        </span>
+      </div>
+
+      {/* Draw Title/Logo */}
+      <div style={{ textAlign: "center", marginBottom: 4 }}>
+        <h3
+          style={{
+            fontSize: 22, // Scale down title size from 32
+            fontWeight: 800,
+            color: "#FFD700", // Bright gold
+            margin: 0,
+            letterSpacing: "-0.01em",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          {draw.name.toLowerCase()}
+        </h3>
+        <p
+          style={{
+            fontSize: 11, // Scale down tagline
+            color: "rgba(255, 255, 255, 0.6)",
+            margin: "3px 0 0",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Every number is a chance for luxury.
+        </p>
+      </div>
+
+      {/* Hero Prize Box */}
       <div
-        aria-hidden
         style={{
-          position: "absolute",
-          top: 0,
-          left: "15%",
-          right: "15%",
-          height: 1,
-          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
-          opacity: 0.6,
+          textAlign: "center",
+          margin: "14px 0", // Saved 10px height
+          position: "relative",
         }}
-      />
+      >
+        <p
+          style={{
+            fontSize: 9, // Reduced kicker size
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "rgba(255, 255, 255, 0.5)",
+            margin: "0 0 4px",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          {prizeKicker}
+        </p>
+        <p
+          style={{
+            fontSize: "clamp(1.4rem, 4.5vw, 1.85rem)", // Beautiful scaled prize text
+            fontWeight: 800,
+            color: "#FFD700",
+            lineHeight: 1.1,
+            margin: 0,
+            fontFamily: "'DM Sans', sans-serif",
+            textShadow: "0 0 15px rgba(255, 215, 0, 0.4)", // Soft glow
+          }}
+        >
+          {prize ?? "—"}
+        </p>
+      </div>
 
-      <div style={{ padding: "18px 18px 0", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
-
-        {/* Status badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      {/* Ticket Price & Draw Date Info Row */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          paddingTop: 10,
+          marginBottom: 14, // Saved height
+        }}
+      >
+        {/* Ticket Price */}
+        <div>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              background: theme.badgeBg,
-              color: theme.badgeColor,
-              border: `1px solid ${theme.border}`,
-              borderRadius: 999,
-              padding: "3px 10px",
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
+              display: "block",
+              fontSize: 8.5,
+              fontWeight: 500,
+              color: "rgba(255, 255, 255, 0.4)",
               textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 2,
               fontFamily: "'DM Sans', sans-serif",
             }}
           >
-            <span
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background: theme.accent,
-                boxShadow: `0 0 6px ${theme.accent}`,
-                display: "inline-block",
-              }}
-            />
-            {statusLabel}
+            {language === "hi" ? "टिकट की कीमत" : "Ticket Price"}
+          </span>
+          <span
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#FFFFFF",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            ₹{draw.pricePerTicket} <span style={{ fontWeight: 500, fontSize: 15, color: "rgba(255,255,255,0.6)" }}>{perTicketLabel}</span>
           </span>
         </div>
 
-        {/* Draw name */}
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#f1f0f8",
-            fontFamily: "'DM Sans', sans-serif",
-            lineHeight: 1.3,
-            letterSpacing: "-0.01em",
-            margin: 0,
-          }}
-        >
-          {draw.name}
-        </p>
-
-        {/* Prize hero box */}
-        <div
-          style={{
-            background: theme.prizeBg,
-            border: `1px solid ${theme.border}`,
-            borderRadius: 16,
-            padding: "14px 16px",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* Corner shine */}
-          <div
-            aria-hidden
+        {/* Draw Date */}
+        <div style={{ textAlign: "right" }}>
+          <span
             style={{
-              position: "absolute",
-              top: -30,
-              right: -30,
-              width: 80,
-              height: 80,
-              borderRadius: "50%",
-              background: theme.accent,
-              opacity: 0.06,
-              filter: "blur(20px)",
-            }}
-          />
-          <p
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: theme.accent,
-              opacity: 0.75,
-              margin: "0 0 5px",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            {prizeKicker}
-          </p>
-          <p
-            style={{
-              fontSize: "clamp(1.55rem, 4.5vw, 2rem)",
-              fontWeight: 800,
-              color: theme.prizeColor,
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              margin: 0,
-              fontFamily: "'Playfair Display', serif",
-            }}
-          >
-            {prize ?? "—"}
-          </p>
-
-          {/* Dashed divider */}
-          <div
-            aria-hidden
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              margin: "10px 0",
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                border: `1.5px solid rgba(255,255,255,0.15)`,
-                flexShrink: 0,
-              }}
-            />
-            <span
-              style={{
-                flex: 1,
-                borderTop: "1.5px dashed rgba(255,255,255,0.08)",
-              }}
-            />
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                border: `1.5px solid rgba(255,255,255,0.15)`,
-                flexShrink: 0,
-              }}
-            />
-          </div>
-
-          <p
-            style={{
-              fontSize: 10,
+              display: "block",
+              fontSize: 8.5,
               fontWeight: 500,
-              color: "rgba(255,255,255,0.38)",
-              margin: 0,
+              color: "rgba(255, 255, 255, 0.4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 2,
               fontFamily: "'DM Sans', sans-serif",
             }}
           >
-            {perTicketLabel}{" "}
-            <span style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>
-              ₹{draw.pricePerTicket.toLocaleString("en-IN")}
-            </span>
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        {pctLeft != null && (
-          <div>
-            <div
-              style={{
-                height: 5,
-                width: "100%",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.07)",
-                overflow: "hidden",
-              }}
+            {language === "hi" ? "ड्रॉ की तारीख" : "Draw Date"}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#FFFFFF",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ opacity: 0.8 }}
             >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${pctLeft}%` }}
-                transition={{ duration: 0.9, delay: index * 0.07 + 0.3, ease: "easeOut" }}
-                style={{
-                  height: "100%",
-                  borderRadius: 999,
-                  background: `linear-gradient(90deg, ${theme.accent}, ${theme.prizeColor})`,
-                }}
-              />
-            </div>
-            {soldPct != null && soldPct > 72 && (
-              <p
-                style={{
-                  marginTop: 4,
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: "#fb923c",
-                  fontFamily: "'DM Sans', sans-serif",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {language === "hi" ? "⚡ लगभग भर चुका" : "⚡ Selling fast"}
-              </p>
-            )}
-          </div>
-        )}
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            {drawTimeLabel}
+          </span>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div
+      {/* Buy Button */}
+      <motion.button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onBuy();
+        }}
+        whileHover={{ scale: 1.02, backgroundColor: "#D11A3A" }}
+        whileTap={{ scale: 0.98 }}
         style={{
-          padding: "14px 18px 18px",
+          width: "100%",
+          background: "#C40C30",
+          border: "none",
+          borderRadius: 12, // More rounded-premium compact shape
+          padding: "10px 16px", // Highly tactile compact padding
+          fontSize: 14, // Scale down button font
+          fontWeight: 700,
+          color: "#FFFFFF",
+          cursor: "pointer",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: 4,
+          justifyContent: "center",
+          gap: 6,
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "0.02em",
+          boxShadow: "0 4px 12px rgba(196, 12, 48, 0.25)",
         }}
       >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="9" cy="21" r="1" />
+          <circle cx="20" cy="21" r="1" />
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+        </svg>
+        {buyLabel}
+      </motion.button>
+
+      {/* Sales Loader & Stats below Buy Button */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 12 }}>
         <div
           style={{
             display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
-            gap: 5,
-            fontSize: 10,
-            fontWeight: 500,
-            color: "rgba(255,255,255,0.35)",
+            fontSize: 10, // Scaled down text
+            fontWeight: 600,
+            color: "rgba(255, 255, 255, 0.5)",
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          {drawTimeLabel}
+          <span>{sold.toLocaleString("en-IN")} Sold</span>
+          <span>{total.toLocaleString("en-IN")} Total</span>
         </div>
-
-        <motion.button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onBuy();
-          }}
-          whileHover={{ scale: 1.04, boxShadow: `0 6px 22px ${theme.btnGlow}` }}
-          whileTap={{ scale: 0.97 }}
+        {/* Progress bar loader */}
+        <div
           style={{
-            background: theme.btnBg,
-            border: "none",
+            height: 4, // Slim progress bar
+            width: "100%",
             borderRadius: 999,
-            padding: "8px 18px",
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#fff",
-            cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: "0.04em",
-            whiteSpace: "nowrap",
-            boxShadow: `0 4px 14px ${theme.btnGlow}`,
+            background: "rgba(255, 255, 255, 0.08)",
+            overflow: "hidden",
+            position: "relative",
           }}
         >
-          {buyLabel}
-        </motion.button>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${soldPercent}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            style={{
+              height: "100%",
+              background: "linear-gradient(90deg, #FFD700, #EF4444)",
+              borderRadius: 999,
+            }}
+          />
+        </div>
+        {soldPercent > 75 && (
+          <p
+            style={{
+              marginTop: 1,
+              fontSize: 9,
+              fontWeight: 600,
+              color: "#FFD700",
+              textAlign: "center",
+              fontFamily: "'DM Sans', sans-serif",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {language === "hi" ? "⚡ लगभग भर चुका!" : "⚡ Selling fast!"}
+          </p>
+        )}
       </div>
 
-      {/* Bottom accent bar on hover — achieved via a permanent thin bar */}
+      {/* Secure Badge at bottom */}
       <div
-        aria-hidden
         style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 2,
-          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
-          opacity: 0.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 5,
+          marginTop: 12,
+          color: "rgba(255, 255, 255, 0.35)",
+          fontSize: 9.5, // Extremely refined and neat size
+          fontWeight: 500,
+          fontFamily: "'DM Sans', sans-serif",
         }}
-      />
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        <span>
+          {language === "hi"
+            ? "सुरक्षित और विश्वसनीय सरकारी लॉटरी"
+            : "Secure & Trusted Government Lottery"}
+        </span>
+      </div>
     </motion.article>
   );
 }

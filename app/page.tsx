@@ -5,22 +5,26 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
 // ── External / project imports ────────────────────────────────────────────────
-import { AuthModal }    from "./components/AuthModal";
+import { AuthModal } from "./components/AuthModal";
 // import { FrameOverlay } from "./components/FrameOverlay";
 import { HeaderBar, type HeaderBarProps } from "./components/HeaderBar";
 import { ProfilePanel } from "./components/ProfilePanel";
-import { PanelCorners }           from "./components/PanelCorners";
-import { RightInsightColumn }     from "./components/RightInsightColumn";
-import { VerticalImageCarousel }  from "./components/VerticalImageCarousel";
-import { WinnerCard }             from "./components/WinnerCard";
-import { DrawTicketCard }         from "./components/DrawTicketCard";
+import { PanelCorners } from "./components/PanelCorners";
+import { RightInsightColumn } from "./components/RightInsightColumn";
+import { VerticalImageCarousel } from "./components/VerticalImageCarousel";
+import { WinnerCard } from "./components/WinnerCard";
+import { DrawTicketCard } from "./components/DrawTicketCard";
+import { LiveBookingToast } from "./components/LiveBookingToast";
+import { VisitorCounter } from "./components/VisitorCounter";
+import { Footer } from "./components/Footer";
+import { FaTrophy } from "react-icons/fa6";
 
 import { siteCopy, type Language } from "./siteCopy";
-import type { DrawSummaryPublic }  from "@/lib/draws";
-import type { LiveResult }         from "@/lib/types";
+import type { DrawSummaryPublic } from "@/lib/draws";
+import type { LiveResult } from "@/lib/types";
 
 // ── Custom hooks ──────────────────────────────────────────────────────────────
-import { useAuth }      from "./hooks/useAuth";
+import { useAuth } from "./hooks/useAuth";
 import { useCountdown } from "./hooks/useCountdown";
 
 // ── Data-fetching hooks (inline for brevity – move out if they grow) ──────────
@@ -31,7 +35,7 @@ function useDraws() {
     fetch("/api/draws")
       .then(async (r) => r.ok ? (await r.json() as { draws: DrawSummaryPublic[] }) : null)
       .then((d) => { if (d?.draws) setDraws(d.draws); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   return draws;
 }
@@ -42,7 +46,7 @@ function useResults() {
     fetch("/api/results")
       .then(async (r) => r.ok ? (await r.json() as { results: LiveResult[] }) : null)
       .then((d) => { if (d?.results) setResults(d.results); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   return results;
 }
@@ -53,7 +57,7 @@ function usePlatformStats() {
     fetch("/api/stats")
       .then(async (r) => r.ok ? (await r.json() as { totalUsers: number; totalWinners: number; ticketsSold: number }) : null)
       .then((d) => { if (d) setStats(d); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   return stats;
 }
@@ -61,7 +65,7 @@ function usePlatformStats() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const router   = useRouter();
+  const router = useRouter();
   const [language, setLanguage] = useState<Language>("en");
   const currentCopy = siteCopy[language];
 
@@ -106,7 +110,7 @@ export default function Home() {
   const { authUser, setAuthUser, updateAuthedUser } = useAuth();
 
   // Remote data
-  const liveDraws   = useDraws();
+  const liveDraws = useDraws();
   const liveResults = useResults();
 
   // Countdown to next draw
@@ -121,29 +125,29 @@ export default function Home() {
     if (typeof window === "undefined") return "signin";
     return new URLSearchParams(window.location.search).get("auth") === "register" ? "register" : "signin";
   });
-  const [profileOpen,     setProfileOpen]     = useState(false);
-  const [drawsPage,       setDrawsPage]       = useState(1);
-  const [winnerBurst,     setWinnerBurst]     = useState({ image: "", key: 0 });
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [drawsPage, setDrawsPage] = useState(1);
+  const [winnerBurst, setWinnerBurst] = useState({ image: "", key: 0 });
 
   // ── Sorted Draws Logic ───────────────────────────────────────────────────────
   const sortedDraws = useMemo(() => {
     if (!liveDraws.length) return [];
-    
+
     const active = liveDraws.filter(d => d.status === "active");
-    const upcoming = [...liveDraws.filter(d => d.status === "upcoming")].sort((a, b) => 
+    const upcoming = [...liveDraws.filter(d => d.status === "upcoming")].sort((a, b) =>
       new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime()
     );
     const closed = liveDraws.filter(d => d.status === "closed");
-    
+
     const nextUpcoming = upcoming.length > 0 ? upcoming[0] : null;
     const remainingUpcoming = upcoming.slice(1);
-    
+
     const result = [];
     if (nextUpcoming) result.push(nextUpcoming);
     result.push(...active);
     result.push(...remainingUpcoming);
     result.push(...closed);
-    
+
     return result;
   }, [liveDraws]);
 
@@ -165,8 +169,8 @@ export default function Home() {
     language,
     onLanguageChange: setLanguage,
     authUser,
-    onSignIn:      () => openAuth("signin"),
-    onRegister:    () => openAuth("register"),
+    onSignIn: () => openAuth("signin"),
+    onRegister: () => openAuth("register"),
     onProfileClick: () => setProfileOpen(true),
   };
 
@@ -194,7 +198,7 @@ export default function Home() {
                 <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
 
                   {/* Hero carousel */}
-                  <motion.section
+                  {/* <motion.section
                     initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
                     className="royal-panel royal-panel-strong sl-hero-outline relative w-full overflow-hidden rounded-[24px] border-2 border-amber-500/35 bg-transparent px-5 pb-3 pt-5 sm:rounded-[28px] sm:px-6 sm:pt-6"
@@ -202,10 +206,20 @@ export default function Home() {
                     <PanelCorners />
                     <div className="relative flex w-full flex-col items-center gap-4">
                       <div className="relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+                        <VerticalImageCarousel className="p-0" intervalMs={3000} /> */}
+                  <motion.section
+                    initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="royal-panel royal-panel-strong sl-hero-outline relative w-full overflow-hidden rounded-[24px] border-2 border-amber-500/35 bg-transparent px-5 pb-3 pt-5 sm:rounded-[28px] sm:px-6 sm:pt-6"
+                  >
+                    <PanelCorners />
+                    {/* <div className="relative flex w-full flex-col items-center gap-4"> */}
+                    <div className="relative flex w-full flex-col items-center gap-4">
+                      <div className="relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
                         <VerticalImageCarousel className="p-0" intervalMs={3000} />
                       </div>
                       <div className="w-full max-w-4xl text-center">
-                        <p className="mx-auto mt-4 max-w-3xl text-sm font-medium leading-7 text-[var(--foreground)] opacity-[0.92] md:text-base">
+                        <p className="mx-auto mt-4 max-w-3xl text-xs font-medium leading-6 text-[var(--foreground)] opacity-[0.92] md:text-sm">
                           {currentCopy.heroDescription}
                         </p>
                       </div>
@@ -226,7 +240,9 @@ export default function Home() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid items-start gap-3 md:grid-cols-2">
+                        {/* <div className="grid items-start gap-4 md:grid-cols-2 max-w-[700px] mx-auto w-full"> */}
+                        {/* <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 w-full"> */}
+                       <div className="grid items-start gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 w-full">
                           {sortedDraws.slice((drawsPage - 1) * 6, drawsPage * 6).map((draw, index) => (
                             <DrawTicketCard
                               key={draw.id}
@@ -313,6 +329,11 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* ── VISITOR COUNTER SECTION ───────────────────────────────── */}
+              <div className="mt-4 sm:mt-5">
+                <VisitorCounter language={language} />
+              </div>
+
               {/* ── WINNERS SECTION ───────────────────────────────────────── */}
               <section className="royal-panel sl-winners-section mt-4 overflow-hidden rounded-[28px] border border-white/10 bg-[#14070f] p-5 sm:mt-5">
                 <div className="pointer-events-none absolute inset-0 opacity-60">
@@ -351,13 +372,18 @@ export default function Home() {
                     );
                   })}
                   {liveResults.filter((r) => r.winnerName).length === 0 && (
-                    <div className="col-span-full py-16 text-center">
-                      <p className="text-3xl">🏆</p>
-                      <p className="mt-4 text-sm text-zinc-400">Winner results will appear here soon.</p>
+                    <div className="col-span-full py-16 text-center flex flex-col items-center justify-center">
+                      <div className="text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.35)] p-4 bg-white/5 rounded-full border border-white/5 flex items-center justify-center">
+                        <FaTrophy className="w-8 h-8" />
+                      </div>
+                      <p className="mt-4 text-sm font-semibold text-zinc-400">Winner results will appear here soon.</p>
                     </div>
                   )}
                 </div>
               </section>
+
+              {/* ── FOOTER SECTION ────────────────────────────────────────── */}
+              <Footer language={language} />
             </section>
           </div>
         </div>
@@ -372,6 +398,7 @@ export default function Home() {
         }}
       />
       <ProfilePanel open={profileOpen} user={authUser} onClose={() => setProfileOpen(false)} onUserUpdated={updateAuthedUser} />
+      <LiveBookingToast />
     </div>
   );
 }

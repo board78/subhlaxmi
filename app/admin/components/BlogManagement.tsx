@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
-const CLOUD_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? "subhlaxmi_preset";
+const CLOUD_NAME = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "").replace(/['"]/g, "");
+const CLOUD_UPLOAD_PRESET = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? "subhlaxmi").replace(/['"]/g, "");
 
 async function uploadToCloudinary(
   file: File,
