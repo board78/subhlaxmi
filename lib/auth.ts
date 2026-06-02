@@ -94,7 +94,7 @@ function safeCompare(left: string, right: string): boolean {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function normalizeEmail(email: unknown): string | null {
+export function normalizeEmail(email: unknown): string | null {
   if (typeof email !== "string") return null;
   const value = email.trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : null;
