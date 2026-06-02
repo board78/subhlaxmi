@@ -101,11 +101,13 @@ export function VisitorCounter({ language = "en" }: VisitorCounterProps) {
                 `}</style>
               </defs>
             </svg>
-            <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase">Active Index</span>
+            <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase">
+              Active Index
+              </span>
           </div>
 
           {/* Odometer Glass Panel */}
-          <div className="flex items-center gap-4 bg-white/[0.02] border border-white/10 rounded-2xl p-3 px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-md">
+<div className="flex items-center gap-4 bg-white/[0.02] border border-white/10 rounded-2xl p-3 px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-md mx-auto">
             
             {/* Odometer Number Roll */}
             <div className="flex items-center gap-0.5">
