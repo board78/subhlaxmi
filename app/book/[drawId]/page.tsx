@@ -62,6 +62,23 @@ export default function BookDrawPage() {
   }, [drawId]);
 
   useEffect(() => {
+    if (draw) {
+      import("react-facebook-pixel")
+        .then((x) => x.default)
+        .then((ReactPixel) => {
+          ReactPixel.track("ViewContent", {
+            content_name: draw.name,
+            content_ids: [draw.id],
+            content_type: "product",
+            value: draw.pricePerTicket,
+            currency: "INR",
+          });
+        })
+        .catch(() => {});
+    }
+  }, [draw]);
+
+  useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/me")
       .then(async (response) => {

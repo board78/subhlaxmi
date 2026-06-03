@@ -28,10 +28,6 @@ export function AppToaster() {
 
   const isDark = theme === "dark";
 
-  const toastClass = isDark
-    ? "!bg-[#1a0d14]/90 !text-zinc-100 !border-white/10 !backdrop-blur-xl !rounded-2xl !py-3.5 !px-4 !border !shadow-lg"
-    : "!bg-white/90 !text-slate-900 !border-slate-200 !backdrop-blur-xl !rounded-2xl !py-3.5 !px-4 !border !shadow-lg";
-
   const successClass = isDark
     ? "!border-emerald-500/40 !text-emerald-300"
     : "!border-emerald-500/40 !text-emerald-800";
@@ -127,7 +123,6 @@ export function AppToaster() {
         style={toasterStyle}
         toastOptions={{
           classNames: {
-            toast:       `${toastClass}`,
             success:     successClass,
             error:       errorClass,
             warning:     warningClass,

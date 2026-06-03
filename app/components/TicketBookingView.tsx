@@ -141,6 +141,22 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
 
   const selectedNumbers = useMemo(() => [...selected.keys()], [selected]);
 
+  const trackAddToCart = (count: number) => {
+    import("react-facebook-pixel")
+      .then((x) => x.default)
+      .then((ReactPixel) => {
+        ReactPixel.track("AddToCart", {
+          content_name: draw.name,
+          content_ids: [draw.id],
+          content_type: "product",
+          value: draw.pricePerTicket * count,
+          currency: "INR",
+          num_items: count,
+        });
+      })
+      .catch(() => {});
+  };
+
   const handleAddToCart = () => {
     if (!user) {
       onNeedAuth();
@@ -155,6 +171,7 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
       pricePerTicket: draw.pricePerTicket,
       ticketNumbers: selectedNumbers,
     });
+    trackAddToCart(selectedNumbers.length);
     toast.success("Added to cart", {
       description: `${selectedNumbers.length} ticket(s) · ${draw.name}`,
     });
@@ -177,6 +194,7 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
       pricePerTicket: draw.pricePerTicket,
       ticketNumbers: selectedNumbers,
     });
+    trackAddToCart(selectedNumbers.length);
     toast.success("Added to cart", {
       description: `${selectedNumbers.length} ticket(s) — opening checkout`,
     });

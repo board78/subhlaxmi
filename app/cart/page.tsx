@@ -36,6 +36,21 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
+    if (cartReady && cart.items.length > 0) {
+      import("react-facebook-pixel")
+        .then((x) => x.default)
+        .then((ReactPixel) => {
+          ReactPixel.track("InitiateCheckout", {
+            num_items: cart.items.reduce((sum, item) => sum + item.ticketNumbers.length, 0),
+            value: cart.items.reduce((sum, item) => sum + item.ticketNumbers.length * item.pricePerTicket, 0),
+            currency: "INR",
+          });
+        })
+        .catch(() => {});
+    }
+  }, [cartReady, cart.items]);
+
+  useEffect(() => {
     fetch("/api/profile")
       .then(async (r) => r.ok ? (await r.json() as { user: SafeUser }) : null)
       .then((d) => { if (d?.user) setUser(d.user); })

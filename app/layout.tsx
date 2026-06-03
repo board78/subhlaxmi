@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppToaster } from "@/app/components/AppToaster";
 import { ThemeSync } from "@/app/components/ThemeSync";
+import { FacebookPixelProvider } from "@/app/components/FacebookPixelProvider";
 import "./globals.css";
 
 function getSiteUrl(): URL {
@@ -73,6 +74,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeSync />
         <AppToaster />
+        <FacebookPixelProvider />
         {children}
       </body>
     </html>
