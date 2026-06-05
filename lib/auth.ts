@@ -496,7 +496,8 @@ async function sendVerificationEmail(email: string, code: string) {
     secure: port === 465,
     auth: { user, pass },
     requireTLS: port === 587 ? true : undefined,
-  });
+    family: 4, // Force IPv4 to avoid IPv6 ENETUNREACH errors
+  } as any);
 
   await transporter.sendMail({
     from,
