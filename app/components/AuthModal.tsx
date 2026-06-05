@@ -159,7 +159,7 @@ function AuthModalBody({
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/70">
                   New account
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold leading-tight text-white">Create your account</h2>
+                <h2 className="mt-3 text-3xl font-semibold leading-tight text-white">Creae your account</h2>
               </div>
             )}
 
