@@ -12,6 +12,7 @@
     "reset:samridhi": "tsx --env-file=.env scripts/reset-samridhi-tickets.ts",
     "reset:kuber": "tsx --env-file=.env scripts/reset-kuber-tickets.ts",
     "cleanup:orphans": "tsx --env-file=.env scripts/cleanup-orphan-tickets.ts",
+    "qpc:demo": "node --env-file=.env scripts/qpc-demo-test.js",
     "prepare": "husky"
   },
   "dependencies": {

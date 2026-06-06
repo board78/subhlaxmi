@@ -3,6 +3,7 @@ import { getSessionUser, jsonError } from "@/lib/auth";
 import { upsertPendingPayment } from "@/lib/payments";
 import {
   callQpcPayinCreate,
+  generateMerchantOrderNo,
   getQpcMerchantId,
   getQpcMerchantKey,
   normalizeDeepLink,
@@ -44,6 +45,14 @@ export async function POST(request: NextRequest) {
     const orderAmount = Math.round((subtotal + gst) * 100) / 100;
     if (orderAmount <= 0) return jsonError("Invalid cart total.");
 
+    // QPC minimum transaction is ₹100. Below this their API returns 502.
+    if (orderAmount < 100) {
+      return jsonError(
+        `Minimum order amount for online payment is ₹100. Your cart total is ₹${orderAmount.toFixed(2)}. Please add more tickets.`,
+        400,
+      );
+    }
+
     const merchantId = getQpcMerchantId();
     const merchantKey = getQpcMerchantKey();
     if (!merchantId || !merchantKey) {
@@ -59,7 +68,7 @@ export async function POST(request: NextRequest) {
       phone: (userDoc?.phone as string | null) ?? null,
     };
 
-    const merchantOrderNo = `ORD${Date.now()}${Math.random().toString(16).slice(2, 6)}`.slice(0, 50);
+    const merchantOrderNo = generateMerchantOrderNo();
     const amountStr = orderAmount.toFixed(2);
 
     const origin = getPublicAppOrigin(request);

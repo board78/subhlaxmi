@@ -1,12 +1,9 @@
 import crypto from "crypto";
+import https from "https";
 
-export const QPC_PAYIN_CREATE_URL =
-  process.env.QPC_API_URL?.trim() || "https://portalquickpaycash.com/api/payin/create";
-
-export const QPC_PAYIN_STATUS_URL =
-  process.env.QPC_STATUS_API_URL?.trim() || "https://portalquickpaycash.com/api/payin/status";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+export const QPC_HOST = "portalquickpaycash.com";
+export const QPC_PAYIN_CREATE_PATH = "/api/payin/create";
+export const QPC_PAYIN_STATUS_PATH = "/api/payin/status";
 
 export type QpcDeepLink = {
   upi_intent?: string;
@@ -18,7 +15,7 @@ export type QpcDeepLink = {
 export type QpcCreateData = {
   paymentLink?: string;
   paymentPageUrl?: string;
-  paymentUrl?: string;       // some QPC responses use this field name
+  paymentUrl?: string;
   paymentImage?: string | null;
   platOrderNo?: string;
   orderStatus?: string;
@@ -42,8 +39,10 @@ export type QpcPayinStatusData = {
   amount?: number;
   merchantFee?: number;
   orderStatus?: string;
-  status?: string;           // demo uses 'status', docs use 'orderStatus'
+  status?: string;
   orderMessage?: string;
+  deepLink?: QpcDeepLink;
+  paymentLink?: string;
 };
 
 export type QpcPayerInput = {
@@ -51,8 +50,6 @@ export type QpcPayerInput = {
   email?: string | null;
   phone?: string | null;
 };
-
-// ─── Signature ────────────────────────────────────────────────────────────────
 
 /** MD5(merchantId + merchantOrderNo + amount + merchantKey).toUpperCase() */
 export function qpcPayinSign(
@@ -65,28 +62,54 @@ export function qpcPayinSign(
   return crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
 }
 
-/**
- * Verify webhook callback signature per QPC demo:
- *   MD5(orderId + merchantOrderNo + status + merchantKey).toUpperCase()
- *
- * orderId    = body.orderId   || body.platOrderNo
- * status     = body.status    || body.orderStatus
- * signature  = body.signature || body.sign
- */
-export function verifyCallbackSign(
+/** Demo webhook: MD5(orderId + merchantOrderNo + status + merchantKey) */
+export function qpcCallbackSignDemo(
   orderId: string,
   merchantOrderNo: string,
   status: string,
-  signature: string,
   merchantKey: string,
-): boolean {
-  if (!signature?.trim()) return false;
+): string {
   const raw = orderId + merchantOrderNo + status + merchantKey;
-  const expected = crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
-  return expected === signature.trim().toUpperCase();
+  return crypto.createHash("md5").update(raw).digest("hex").toUpperCase();
 }
 
-// ─── Credentials ──────────────────────────────────────────────────────────────
+/** Docs webhook: MD5(merchantId + merchantOrderNo + amount + merchantKey) */
+export function qpcCallbackSignDocs(
+  merchantId: string,
+  merchantOrderNo: string,
+  amount: string,
+  merchantKey: string,
+): string {
+  return qpcPayinSign(merchantId, merchantOrderNo, amount, merchantKey);
+}
+
+export function verifyCallbackSign(body: {
+  orderId?: string;
+  platOrderNo?: string;
+  merchantNo?: string;
+  merchantOrderNo?: string;
+  orderStatus?: string;
+  status?: string;
+  amount?: string | number;
+  sign?: string;
+  signature?: string;
+}, merchantId: string, merchantKey: string): boolean {
+  const sig = (body.signature || body.sign || "").trim().toUpperCase();
+  if (!sig) return false;
+
+  const merchantOrderNo = body.merchantOrderNo || "";
+  const orderId = body.orderId || body.platOrderNo || "";
+  const status = (body.status || body.orderStatus || "").trim().toUpperCase();
+  const amount = String(body.amount ?? "");
+
+  const demoExpected = qpcCallbackSignDemo(orderId, merchantOrderNo, status, merchantKey);
+  if (sig === demoExpected) return true;
+
+  const docsExpected = qpcCallbackSignDocs(merchantId, merchantOrderNo, amount, merchantKey);
+  if (sig === docsExpected) return true;
+
+  return false;
+}
 
 export function getQpcMerchantKey(): string {
   return (
@@ -100,12 +123,11 @@ export function getQpcMerchantId(): string {
   return process.env.QPC_MERCHANT_ID?.trim() ?? "";
 }
 
-// ─── Payer fields ─────────────────────────────────────────────────────────────
+/** Same order ID style as QPC demo: ORD_<timestamp> */
+export function generateMerchantOrderNo(): string {
+  return `ORD_${Date.now()}`.slice(0, 50);
+}
 
-/**
- * Per QPC demo: always include all three payer fields.
- * Fall back to 'Customer' / '' / '' when not available.
- */
 export function buildPayerFields(payer: QpcPayerInput): {
   payerName: string;
   payerEmail: string;
@@ -117,14 +139,11 @@ export function buildPayerFields(payer: QpcPayerInput): {
 
   return {
     payerName: name || "Customer",
-    payerEmail: email,
-    payerMobile: mobile,
+    payerEmail: email || "",
+    payerMobile: mobile || "",
   };
 }
 
-// ─── Checkout URL resolution ──────────────────────────────────────────────────
-
-/** Prefer paymentUrl → paymentPageUrl → paymentLink (first valid http/https URL). */
 export function resolveCheckoutUrl(data: QpcCreateData): string | null {
   for (const val of [data.paymentUrl, data.paymentPageUrl, data.paymentLink]) {
     const v = val?.trim();
@@ -143,43 +162,65 @@ export function normalizeDeepLink(dl?: QpcDeepLink): QpcDeepLink | null {
   return Object.keys(out).length ? out : null;
 }
 
-// ─── HTTP helper ──────────────────────────────────────────────────────────────
-
-async function readQpcJson<T>(res: Response): Promise<{ ok: true; body: T } | { ok: false; error: string }> {
-  const text = await res.text();
-  if (!text.trim()) {
-    return { ok: false, error: `QPC returned empty body (HTTP ${res.status}).` };
-  }
-  if (text.trim().startsWith("<")) {
-    return { ok: false, error: `QPC gateway error (HTTP ${res.status}).` };
-  }
-  try {
-    const body = JSON.parse(text) as T & {
-      status?: string | number;
-      message?: string;
-      cloudflare_error?: boolean;
-      title?: string;
-      detail?: string;
+/** HTTPS POST — identical transport to QPC team's working demo script */
+export function qpcHttpsPost(
+  path: string,
+  payload: Record<string, string>,
+  timeoutMs = 30_000,
+): Promise<{ httpStatus: number; body: QpcCreateResponse }> {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const options: https.RequestOptions = {
+      hostname: QPC_HOST,
+      path,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+      },
+      timeout: timeoutMs,
     };
-    if (body.cloudflare_error || String(body.status) === "502") {
-      return {
-        ok: false,
-        error:
-          body.detail ??
-          body.title ??
-          "QPC payment server is temporarily down. Please try again shortly.",
-      };
-    }
-    if (String(body.status) !== "200") {
-      return { ok: false, error: body.message ?? `QPC error (status ${body.status ?? "unknown"}).` };
-    }
-    return { ok: true, body };
-  } catch {
-    return { ok: false, error: `QPC unexpected response (HTTP ${res.status}).` };
-  }
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          resolve({
+            httpStatus: res.statusCode ?? 0,
+            body: JSON.parse(data) as QpcCreateResponse,
+          });
+        } catch {
+          reject(new Error(`QPC invalid JSON (HTTP ${res.statusCode}): ${data.slice(0, 400)}`));
+        }
+      });
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("QPC request timed out after 30s"));
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
 }
 
-// ─── Create PayIn ─────────────────────────────────────────────────────────────
+function parseQpcBody(httpStatus: number, body: QpcCreateResponse): { ok: true; data: QpcCreateData } | { ok: false; error: string } {
+  if (body.cloudflare_error || httpStatus === 502 || String(body.status) === "502") {
+    return {
+      ok: false,
+      error:
+        body.detail ??
+        body.title ??
+        "QPC payment server is temporarily down. Please try again shortly.",
+    };
+  }
+  if (String(body.status) !== "200" || !body.data) {
+    return { ok: false, error: body.message ?? `QPC error (HTTP ${httpStatus}, status ${body.status}).` };
+  }
+  return { ok: true, data: body.data };
+}
 
 export async function callQpcPayinCreate(input: {
   merchantId: string;
@@ -195,51 +236,37 @@ export async function callQpcPayinCreate(input: {
   const payer = buildPayerFields(input.payer ?? {});
 
   const payload: Record<string, string> = {
-    merchantId:      input.merchantId,
+    merchantId: input.merchantId,
     merchantOrderNo: input.merchantOrderNo,
-    amount:          input.amount,
-    currency:        input.currency,
-    payerName:       payer.payerName,
-    payerEmail:      payer.payerEmail,
-    payerMobile:     payer.payerMobile,
-    description:     input.description?.trim() || "Payment for order " + input.merchantOrderNo,
-    returnUrl:       input.returnUrl,
-    callbackUrl:     input.callbackUrl,
-    signature:       input.signature,
+    amount: input.amount,
+    currency: input.currency,
+    payerName: payer.payerName,
+    payerEmail: payer.payerEmail,
+    payerMobile: payer.payerMobile,
+    description: input.description?.trim() || "Payment for order " + input.merchantOrderNo,
+    returnUrl: input.returnUrl,
+    callbackUrl: input.callbackUrl,
+    signature: input.signature,
   };
 
   console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount);
 
   try {
-    const res = await fetch(QPC_PAYIN_CREATE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30_000),
-    });
+    const { httpStatus, body } = await qpcHttpsPost(QPC_PAYIN_CREATE_PATH, payload);
+    console.log("[QPC] PayIn HTTP:", httpStatus, "status:", body.status);
 
-    const parsed = await readQpcJson<QpcCreateResponse>(res);
+    const parsed = parseQpcBody(httpStatus, body);
     if (!parsed.ok) return parsed;
-    if (!parsed.body.data) {
-      return { ok: false, error: parsed.body.message ?? "QPC did not return order data." };
-    }
-    console.log("[QPC] PayIn response:", JSON.stringify(parsed.body.data));
-    return { ok: true, data: parsed.body.data };
+
+    console.log("[QPC] PayIn OK — paymentPageUrl:", parsed.data.paymentPageUrl);
+    return parsed;
   } catch (err) {
-    const error =
-      err instanceof Error && err.name === "TimeoutError"
-        ? "QPC payment server timed out. Please try again."
-        : "Could not connect to QPC payment server. Please check your internet and try again.";
+    const error = err instanceof Error ? err.message : "QPC request failed";
+    console.error("[QPC] PayIn error:", error);
     return { ok: false, error };
   }
 }
 
-// ─── Query PayIn Status ───────────────────────────────────────────────────────
-
-/**
- * Per QPC demo: status check requires merchantId + signature (amount = "").
- *   signature = MD5(merchantId + merchantOrderNo + "" + merchantKey).toUpperCase()
- */
 export async function callQpcPayinStatus(
   merchantOrderNo: string,
 ): Promise<{ ok: true; data: QpcPayinStatusData } | { ok: false; error: string }> {
@@ -248,21 +275,20 @@ export async function callQpcPayinStatus(
   const signature = qpcPayinSign(merchantId, merchantOrderNo, "", merchantKey);
 
   try {
-    const res = await fetch(QPC_PAYIN_STATUS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ merchantId, merchantOrderNo, signature }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
+    const { httpStatus, body } = await qpcHttpsPost(QPC_PAYIN_STATUS_PATH, {
+      merchantId,
+      merchantOrderNo,
+      signature,
     });
 
-    const parsed = await readQpcJson<{ data?: QpcPayinStatusData; message?: string }>(res);
-    if (!parsed.ok) return parsed;
-    if (!parsed.body.data) {
-      return { ok: false, error: "QPC status response missing data." };
+    if (body.cloudflare_error || httpStatus === 502) {
+      return { ok: false, error: body.detail ?? body.title ?? "QPC status unavailable." };
     }
-    return { ok: true, data: parsed.body.data };
-  } catch {
-    return { ok: false, error: "Unable to reach QPC status API." };
+    if (String(body.status) !== "200" || !body.data) {
+      return { ok: false, error: body.message ?? "QPC status error." };
+    }
+    return { ok: true, data: body.data as QpcPayinStatusData };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "QPC status failed" };
   }
 }

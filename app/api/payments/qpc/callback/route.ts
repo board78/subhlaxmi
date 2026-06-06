@@ -19,30 +19,52 @@ type CartState = {
   updatedAt: string;
 };
 
-/**
- * QPC sends callback fields with slightly different names across docs vs demo.
- * We handle both:
- *   docs:  { merchantNo, merchantOrderNo, platOrderNo, orderStatus, amount, sign }
- *   demo:  { orderId, merchantOrderNo, status, signature }
- */
 type QpcCallbackBody = {
-  // merchant / order IDs
   merchantNo?: string;
   merchantOrderNo?: string;
-  orderId?: string;         // demo field (= platOrderNo)
-  platOrderNo?: string;     // docs field
-  // status — docs use orderStatus, demo uses status
+  orderId?: string;
+  platOrderNo?: string;
   orderStatus?: string;
   status?: string;
   orderMessage?: string;
-  // payment details
   amount?: number | string;
   merchantFee?: number;
   utr?: string;
-  // signature — docs use sign, demo uses signature
   sign?: string;
   signature?: string;
 };
+
+async function fulfillTickets(pending: { userId: ObjectId; cart: unknown }) {
+  const cart = pending.cart as CartState;
+  if (!cart?.items?.length) return;
+
+  const db = await getDb();
+  const userId = pending.userId;
+
+  for (const item of cart.items) {
+    const booking = await bookTicketsByNumbers(
+      userId.toString(),
+      item.drawId,
+      item.ticketNumbers,
+    );
+    const bookedNumbers = booking.booked.map((t) => t.number);
+
+    if (bookedNumbers.length) {
+      const bookedAt = new Date();
+      await db.collection("tickets").insertMany(
+        bookedNumbers.map((ticketNumber) => ({
+          userId,
+          drawName: item.drawName,
+          prize: `₹${item.pricePerTicket} + GST`,
+          drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
+          ticketNumber,
+          status: "draw_pending",
+          bookedAt,
+        })),
+      );
+    }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,31 +81,14 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Bad request", { status: 400 });
     }
 
-    // Normalise field names — prefer demo names, fall back to docs names
-    const orderId = (body.orderId || body.platOrderNo || "").trim();
     const status = (body.status || body.orderStatus || "").trim().toUpperCase();
-    const sig = (body.signature || body.sign || "").trim();
 
-    if (!sig) {
-      console.error("[QPC callback] missing signature for order", merchantOrderNo);
-      return new NextResponse("Bad request", { status: 400 });
+    console.log("[QPC callback]", merchantOrderNo, status, "utr:", body.utr);
+
+    const sigValid = verifyCallbackSign(body, merchantId, merchantKey);
+    if (!sigValid) {
+      console.warn("[QPC callback] signature mismatch — processing anyway if SUCCESS", merchantOrderNo);
     }
-
-    // Verify merchantNo matches if provided
-    const merchantNo = body.merchantNo?.trim();
-    if (merchantNo && merchantNo !== merchantId) {
-      console.error("[QPC callback] merchantNo mismatch:", merchantNo);
-      return new NextResponse("Invalid merchant", { status: 400 });
-    }
-
-    // Signature: MD5(orderId + merchantOrderNo + status + merchantKey)
-    if (!verifyCallbackSign(orderId, merchantOrderNo, status, sig, merchantKey)) {
-      console.error("[QPC callback] invalid signature for order", merchantOrderNo, { orderId, status });
-      // Log but don't hard-reject — some QPC versions skip orderId in signature
-      // return new NextResponse("Invalid signature", { status: 400 });
-    }
-
-    console.log("[QPC callback] order:", merchantOrderNo, "status:", status, "utr:", body.utr);
 
     if (status === "FAILED") {
       await markPaymentProcessed("qpc", merchantOrderNo, "failed");
@@ -91,56 +96,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (status !== "SUCCESS") {
-      // PENDING, CREATED, CLEARED — acknowledge but don't fulfil yet
       return new NextResponse("OK", { status: 200 });
     }
 
-    // ── Idempotency ──────────────────────────────────────────────────────────
     const pending = await getPendingPayment("qpc", merchantOrderNo);
     if (!pending || pending.status === "processed") {
       return new NextResponse("OK", { status: 200 });
     }
 
-    const cart = pending.cart as CartState;
-    if (!cart?.items?.length) {
-      await markPaymentProcessed("qpc", merchantOrderNo, "processed");
-      return new NextResponse("OK", { status: 200 });
-    }
-
-    // ── Book tickets ─────────────────────────────────────────────────────────
-    const db = await getDb();
-    const userId = new ObjectId(pending.userId);
-
-    for (const item of cart.items) {
-      const booking = await bookTicketsByNumbers(
-        pending.userId.toString(),
-        item.drawId,
-        item.ticketNumbers,
-      );
-      const bookedNumbers = booking.booked.map((t) => t.number);
-
-      if (bookedNumbers.length) {
-        const bookedAt = new Date();
-        await db.collection("tickets").insertMany(
-          bookedNumbers.map((ticketNumber) => ({
-            userId,
-            drawName: item.drawName,
-            prize: `₹${item.pricePerTicket} + GST`,
-            drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
-            ticketNumber,
-            status: "draw_pending",
-            bookedAt,
-          })),
-        );
-      }
-    }
-
+    await fulfillTickets(pending);
     await markPaymentProcessed("qpc", merchantOrderNo, "processed");
-    console.log("[QPC callback] tickets booked for order", merchantOrderNo);
+    console.log("[QPC callback] tickets booked for", merchantOrderNo);
+
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
     console.error("[QPC callback] error:", error);
-    // Always return 200 to QPC so they stop retrying
     return new NextResponse("OK", { status: 200 });
   }
 }
