@@ -6,7 +6,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { AuthModal } from "./AuthModal";
 import type { SafeUser } from "@/lib/auth";
 
-const defaultMenu = ["Home", "My Tickets", "Live Results", "Jackpots", "Rewards", "Support", "Blog"] as const;
+const defaultMenu = ["Home", "My Tickets", "Live Results", "Support", "Blog"] as const;
 
 interface NavbarProps {
   user?: SafeUser | null;

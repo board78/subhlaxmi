@@ -144,7 +144,7 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          {draw.name.toLowerCase()}
+          {draw.name.replace(/\b\w/g, c => c.toUpperCase())}
         </h3>
         <p
           style={{

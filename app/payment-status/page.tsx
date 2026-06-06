@@ -254,6 +254,20 @@ function PaymentStatusContent() {
         setDraws(data.draws ?? []);
         setAmount(data.amount ?? null);
         setStatus("success");
+        import("react-facebook-pixel")
+          .then((x) => x.default)
+          .then((ReactPixel) => {
+            ReactPixel.track("Purchase", {
+              value: data.amount ?? 0,
+              currency: "INR",
+              content_type: "product",
+              contents: (data.draws ?? []).map((d) => ({
+                id: d.name,
+                quantity: d.tickets,
+              })),
+            });
+          })
+          .catch(() => {});
         return true;
       }
       if (data.status === "FAILED") {

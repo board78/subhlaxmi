@@ -113,6 +113,15 @@ function AuthModalBody({
         password,
         registrationToken,
       });
+      import("react-facebook-pixel")
+        .then((x) => x.default)
+        .then((ReactPixel) => {
+          ReactPixel.track("CompleteRegistration", {
+            status: "success",
+            content_name: data.user.name,
+          });
+        })
+        .catch(() => {});
       onAuthed(data.user);
       onClose();
     } catch (caught) {

@@ -65,7 +65,7 @@ export type CopyPack = {
 
 export const siteCopy: Record<Language, CopyPack> = {
   en: {
-    navItems: ["Home", "Jackpots", "Results", "Rewards"],
+    navItems: ["Home", "Results"],
     badge: "",
     heroTitle: "Subhlaxmi",
     heroSubtitle: "Kuber Ka Khajana. Dhan Varsha. Clean digital lottery experience.",
@@ -116,7 +116,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     hrs: "Hrs",
     mins: "Min",
     secs: "Sec",
-    menu: ["Home", "My Tickets", "Live Results", "Jackpots", "Rewards", "Support", "Blog"],
+    menu: ["Home", "My Tickets", "Live Results", "Support", "Blog"],
     stats: [
       { label: "Active Players", value: 128000, suffix: "+" },
       { label: "Crorepati Winners", value: 4486, suffix: "+" },
@@ -146,7 +146,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     ],
   },
   hi: {
-    navItems: ["होम", "जैकपॉट", "रिजल्ट", "रिवॉर्ड्स"],
+    navItems: ["होम", "रिजल्ट"],
     badge: "",
     heroTitle: "Subhlaxmi",
     heroSubtitle: "कुबेर का खजाना। धन वर्षा। साफ और आधुनिक डिजिटल लॉटरी अनुभव।",
@@ -197,7 +197,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     hrs: "घंटे",
     mins: "मिनट",
     secs: "सेकंड",
-    menu: ["होम", "मेरे टिकट", "लाइव रिजल्ट", "जैकपॉट", "रिवॉर्ड्स", "सपोर्ट", "ब्लॉग"],
+    menu: ["होम", "मेरे टिकट", "लाइव रिजल्ट", "सपोर्ट", "ब्लॉग"],
     stats: [
       { label: "सक्रिय खिलाड़ी", value: 128000, suffix: "+" },
       { label: "करोड़पति विजेता", value: 4486, suffix: "+" },

@@ -8,6 +8,16 @@ import { CartNavButton } from "./CartNavButton";
 import { ThemeToggle } from "./ThemeToggle";
 import type { SafeUser } from "@/lib/auth";
 
+function getHref(item: string) {
+  const norm = item.toLowerCase().trim();
+  if (norm === "home" || norm === "होम") return "/";
+  if (norm === "my tickets" || norm === "मेरे टिकट") return "/my-tickets";
+  if (norm === "live results" || norm === "लाइव रिजल्ट") return "/live-results";
+  if (norm === "support" || norm === "सपोर्ट") return "/support";
+  if (norm === "blog" || norm === "ब्लॉग") return "/blog";
+  return "#";
+}
+
 export type HeaderBarProps = {
   heroTitle: string;
   governmentSubtitle?: string;
@@ -130,7 +140,7 @@ export function HeaderBar({
             <div className="hide-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-8 pt-4">
               <nav className="flex flex-col gap-1" aria-label="Main">
                 {menu.map((item, index) => {
-                  const href = index === 0 ? "/" : item === "Blog" ? "/blog" : "#";
+                  const href = getHref(item);
                   return (
                     <a
                       key={item}
@@ -294,7 +304,7 @@ export function HeaderBar({
 
             <nav className="flex items-center gap-2 text-xs font-semibold text-zinc-200" aria-label="Main">
               {menu.map((item, index) => {
-                const href = index === 0 ? "/" : item === "Blog" ? "/blog" : "#";
+                const href = getHref(item);
                 return (
                   <a
                     key={item}

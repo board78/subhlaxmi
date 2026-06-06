@@ -496,7 +496,11 @@ async function sendVerificationEmail(email: string, code: string) {
     secure: port === 465,
     auth: { user, pass },
     requireTLS: port === 587 ? true : undefined,
-  });
+    family: 4, // Force IPv4 to avoid IPv6 ENETUNREACH errors
+    connectionTimeout: 5000, // 5 seconds connection timeout
+    greetingTimeout: 5000,   // 5 seconds greeting timeout
+    socketTimeout: 10000,    // 10 seconds socket inactivity timeout
+  } as any);
 
   await transporter.sendMail({
     from,
