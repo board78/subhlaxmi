@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import { getDb } from "./mongodb";
 
 // ─── Documents ───────────────────────────────────────────────────────────────
@@ -6,8 +6,12 @@ import { getDb } from "./mongodb";
 export type DrawDoc = {
   _id: ObjectId;
   name: string;
+  drawSeriesName?: string;  // base name for auto-renewal, e.g. "Subhlaxmi"
+  drawNumber?: number;       // 1, 2, 3… auto-increments on renewal
   drawDate: Date;
   drawTime: string;
+  activatesAt?: Date;        // draw goes "active" at this timestamp (midnight IST of drawDate)
+  expiresAt?: Date;          // draw auto-closes here (activatesAt + 7 days)
   prizeAmount?: string;
   pricePerTicket: number;
   series: string[];
@@ -38,15 +42,19 @@ export type TicketDoc = {
 export type DrawPublic = {
   id: string;
   name: string;
+  drawSeriesName?: string;
+  drawNumber?: number;
   drawDate: string;
   drawTime: string;
+  activatesAt: string;   // ISO — when draw goes active
+  expiresAt: string;     // ISO — when draw expires
   prizeAmount?: string;
   pricePerTicket: number;
   series: string[];
   ticketPrefix: string;
   ticketRangeStart: number;
   ticketRangeEnd: number;
-  status: string;
+  status: string;        // computed effective status
 };
 
 export type DrawSummaryPublic = DrawPublic & {
@@ -77,21 +85,63 @@ export type BookingResult = {
   total: number;
 };
 
+// ─── Status computation ───────────────────────────────────────────────────────
+
+/**
+ * Computes the effective draw status from timestamps.
+ * Stored "drawn" or "closed" always wins (manual overrides).
+ * Legacy draws without activatesAt/expiresAt fall back to their stored status.
+ */
+export function computeDrawStatus(doc: DrawDoc): DrawDoc["status"] {
+  // Manual overrides always take precedence
+  if (doc.status === "drawn") return "drawn";
+  if (doc.status === "closed") return "closed";
+
+  // Legacy draws without timestamp fields — keep stored status
+  if (!doc.activatesAt && !doc.expiresAt) return doc.status;
+
+  const now = new Date();
+  const activatesAt = doc.activatesAt ?? doc.drawDate;
+  const expiresAt =
+    doc.expiresAt ??
+    new Date(activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  if (now < activatesAt) return "upcoming";
+  if (now < expiresAt) return "active";
+  return "closed";
+}
+
+/** Returns activatesAt (with fallback to drawDate) */
+function resolveActivatesAt(doc: DrawDoc): Date {
+  return doc.activatesAt ?? doc.drawDate;
+}
+
+/** Returns expiresAt (with fallback to activatesAt + 7 days) */
+function resolveExpiresAt(doc: DrawDoc): Date {
+  if (doc.expiresAt) return doc.expiresAt;
+  const a = resolveActivatesAt(doc);
+  return new Date(a.getTime() + 7 * 24 * 60 * 60 * 1000);
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toDrawPublic(doc: DrawDoc): DrawPublic {
   return {
     id: doc._id.toString(),
     name: doc.name,
+    drawSeriesName: doc.drawSeriesName,
+    drawNumber: doc.drawNumber,
     drawDate: doc.drawDate.toISOString(),
     drawTime: doc.drawTime,
+    activatesAt: resolveActivatesAt(doc).toISOString(),
+    expiresAt: resolveExpiresAt(doc).toISOString(),
     prizeAmount: doc.prizeAmount,
     pricePerTicket: doc.pricePerTicket,
     series: doc.series,
     ticketPrefix: doc.ticketPrefix,
     ticketRangeStart: doc.ticketRangeStart,
     ticketRangeEnd: doc.ticketRangeEnd,
-    status: doc.status,
+    status: computeDrawStatus(doc),
   };
 }
 
@@ -106,24 +156,114 @@ function toTicketPublic(doc: TicketDoc): TicketPublic {
   };
 }
 
+// ─── Auto-renewal ─────────────────────────────────────────────────────────────
+
+/**
+ * Finds draws that have expired (expiresAt ≤ now) and still have an active/upcoming
+ * stored status. Marks them "closed" and creates the next numbered draw in the series.
+ * Safe to call on every public read — idempotent (won't create duplicate successors).
+ */
+export async function renewExpiredDraws(db: Db): Promise<void> {
+  const now = new Date();
+
+  // Only auto-renew draws that have the new timestamp fields
+  const expiredDraws = await db
+    .collection<DrawDoc>("draws")
+    .find({
+      expiresAt: { $lte: now },
+      status: { $nin: ["closed", "drawn"] },
+      drawSeriesName: { $exists: true },
+      drawNumber: { $exists: true },
+    })
+    .toArray();
+
+  for (const draw of expiredDraws) {
+    // Mark expired draw as closed
+    await db
+      .collection<DrawDoc>("draws")
+      .updateOne({ _id: draw._id }, { $set: { status: "closed", updatedAt: now } });
+
+    if (!draw.drawSeriesName || draw.drawNumber == null) continue;
+
+    // Check if successor already exists
+    const nextNumber = draw.drawNumber + 1;
+    const successorExists = await db.collection<DrawDoc>("draws").findOne({
+      drawSeriesName: draw.drawSeriesName,
+      drawNumber: nextNumber,
+    });
+
+    if (!successorExists) {
+      const activatesAt = draw.expiresAt!;
+      const expiresAt = new Date(activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const newDraw: Omit<DrawDoc, "_id"> = {
+        name: `${draw.drawSeriesName} #${nextNumber}`,
+        drawSeriesName: draw.drawSeriesName,
+        drawNumber: nextNumber,
+        drawDate: activatesAt,
+        drawTime: draw.drawTime,
+        activatesAt,
+        expiresAt,
+        prizeAmount: draw.prizeAmount,
+        pricePerTicket: draw.pricePerTicket,
+        series: draw.series,
+        ticketPrefix: draw.ticketPrefix,
+        ticketRangeStart: draw.ticketRangeStart,
+        ticketRangeEnd: draw.ticketRangeEnd,
+        status: "upcoming",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const result = await db
+        .collection<DrawDoc>("draws")
+        .insertOne(newDraw as DrawDoc);
+
+      // Fire-and-forget ticket generation
+      void generateTicketsForDraw(result.insertedId).catch(console.error);
+    }
+  }
+}
+
 // ─── Draw queries ─────────────────────────────────────────────────────────────
 
+/** Returns draws that are currently active or upcoming (for public pages). */
 export async function getActiveDraws(): Promise<DrawPublic[]> {
   const db = await getDb();
+  await renewExpiredDraws(db);
+
+  const now = new Date();
   const draws = await db
     .collection<DrawDoc>("draws")
-    .find({ status: { $in: ["active", "upcoming", "closed"] } })
-    .sort({ drawDate: 1 })
+    .find({
+      $or: [
+        // New schema: not yet expired and not manually ended
+        { expiresAt: { $gt: now }, status: { $nin: ["closed", "drawn"] } },
+        // Legacy draws without timestamp fields
+        { expiresAt: { $exists: false }, status: { $in: ["active", "upcoming"] } },
+      ],
+    })
+    .sort({ activatesAt: 1, drawDate: 1 })
     .toArray();
+
   return draws.map(toDrawPublic);
 }
 
+/** Returns draw summaries (with ticket counts) for public listing. */
 export async function getActiveDrawSummaries(): Promise<DrawSummaryPublic[]> {
   const db = await getDb();
+  await renewExpiredDraws(db);
+
+  const now = new Date();
   const draws = await db
     .collection<DrawDoc>("draws")
-    .find({ status: { $in: ["active", "upcoming", "closed"] } })
-    .sort({ drawDate: 1 })
+    .find({
+      $or: [
+        { expiresAt: { $gt: now }, status: { $nin: ["closed", "drawn"] } },
+        { expiresAt: { $exists: false }, status: { $in: ["active", "upcoming"] } },
+      ],
+    })
+    .sort({ activatesAt: 1, drawDate: 1 })
     .toArray();
 
   const drawIds = draws.map((d) => d._id);
@@ -135,14 +275,19 @@ export async function getActiveDrawSummaries(): Promise<DrawSummaryPublic[]> {
         $group: {
           _id: "$drawId",
           total: { $sum: 1 },
-          available: { $sum: { $cond: [{ $eq: ["$status", "available"] }, 1, 0] } },
+          available: {
+            $sum: { $cond: [{ $eq: ["$status", "available"] }, 1, 0] },
+          },
         },
       },
     ])
     .toArray();
 
   const countMap = new Map<string, { total: number; available: number }>(
-    counts.map((c) => [c._id.toString(), { total: c.total, available: c.available }]),
+    counts.map((c) => [
+      c._id.toString(),
+      { total: c.total, available: c.available },
+    ]),
   );
 
   return draws.map((d) => {
@@ -159,7 +304,9 @@ export async function getActiveDrawSummaries(): Promise<DrawSummaryPublic[]> {
 export async function getDrawById(id: string): Promise<DrawPublic | null> {
   if (!ObjectId.isValid(id)) return null;
   const db = await getDb();
-  const doc = await db.collection<DrawDoc>("draws").findOne({ _id: new ObjectId(id) });
+  const doc = await db
+    .collection<DrawDoc>("draws")
+    .findOne({ _id: new ObjectId(id) });
   return doc ? toDrawPublic(doc) : null;
 }
 
@@ -199,19 +346,24 @@ export async function getTicketsForDraw(drawId: string, filter: TicketsFilter) {
 
   const skip = (filter.page - 1) * filter.limit;
 
-  const [tickets, total, seriesStats, drawTotal, drawAvailable] = await Promise.all([
-    db
-      .collection<TicketDoc>("tickets")
-      .find(query)
-      .sort({ numericPart: 1 })
-      .skip(skip)
-      .limit(filter.limit)
-      .toArray(),
-    db.collection<TicketDoc>("tickets").countDocuments(query),
-    getSeriesStats(oid, filter.series),
-    db.collection<TicketDoc>("tickets").countDocuments({ drawId: oid }),
-    db.collection<TicketDoc>("tickets").countDocuments({ drawId: oid, status: "available" }),
-  ]);
+  const [tickets, total, seriesStats, drawTotal, drawAvailable] =
+    await Promise.all([
+      db
+        .collection<TicketDoc>("tickets")
+        .find(query)
+        .sort({ numericPart: 1 })
+        .skip(skip)
+        .limit(filter.limit)
+        .toArray(),
+      db.collection<TicketDoc>("tickets").countDocuments(query),
+      getSeriesStats(oid, filter.series),
+      db
+        .collection<TicketDoc>("tickets")
+        .countDocuments({ drawId: oid }),
+      db
+        .collection<TicketDoc>("tickets")
+        .countDocuments({ drawId: oid, status: "available" }),
+    ]);
 
   return {
     tickets: tickets.map(toTicketPublic),
@@ -224,12 +376,19 @@ export async function getTicketsForDraw(drawId: string, filter: TicketsFilter) {
   };
 }
 
-export async function getSeriesStats(drawId: ObjectId, series: string): Promise<SeriesStats> {
+export async function getSeriesStats(
+  drawId: ObjectId,
+  series: string,
+): Promise<SeriesStats> {
   const db = await getDb();
 
   const [total, available, lpSpecial] = await Promise.all([
-    db.collection<TicketDoc>("tickets").countDocuments({ drawId, series }),
-    db.collection<TicketDoc>("tickets").countDocuments({ drawId, series, status: "available" }),
+    db
+      .collection<TicketDoc>("tickets")
+      .countDocuments({ drawId, series }),
+    db
+      .collection<TicketDoc>("tickets")
+      .countDocuments({ drawId, series, status: "available" }),
     db
       .collection<TicketDoc>("tickets")
       .countDocuments({ drawId, series, category: "lp_special" }),
@@ -268,11 +427,13 @@ export async function bookTicketsByNumbers(
 
   await Promise.all(
     ticketNumbers.map(async (number) => {
-      const result = await db.collection<TicketDoc>("tickets").findOneAndUpdate(
-        { number, drawId: drawOid, status: "available" },
-        { $set: { status: "sold", bookedBy: userOid, bookedAt } },
-        { returnDocument: "after" },
-      );
+      const result = await db
+        .collection<TicketDoc>("tickets")
+        .findOneAndUpdate(
+          { number, drawId: drawOid, status: "available" },
+          { $set: { status: "sold", bookedBy: userOid, bookedAt } },
+          { returnDocument: "after" },
+        );
       if (result) {
         booked.push(toTicketPublic(result));
       } else {
@@ -287,10 +448,13 @@ export async function bookTicketsByNumbers(
     );
   }
 
-  const draw = await db.collection<DrawDoc>("draws").findOne({ _id: drawOid });
+  const draw = await db
+    .collection<DrawDoc>("draws")
+    .findOne({ _id: drawOid });
   const pricePerTicket = draw?.pricePerTicket ?? 0;
   const gst = Math.round(pricePerTicket * 0.18 * 100) / 100;
-  const total = Math.round(booked.length * (pricePerTicket + gst) * 100) / 100;
+  const total =
+    Math.round(booked.length * (pricePerTicket + gst) * 100) / 100;
 
   return { booked, failed, total };
 }
@@ -311,15 +475,17 @@ export async function quickPickTickets(
   const db = await getDb();
   const drawOid = new ObjectId(drawId);
 
-  const matchQuery: Record<string, unknown> = { drawId: drawOid, status: "available" };
+  const matchQuery: Record<string, unknown> = {
+    drawId: drawOid,
+    status: "available",
+  };
   if (series) matchQuery.series = series;
 
-  // Sample random available tickets
   const candidates = await db
     .collection<TicketDoc>("tickets")
     .aggregate<TicketDoc>([
       { $match: matchQuery },
-      { $sample: { size: quantity * 2 } }, // fetch extra in case of race conditions
+      { $sample: { size: quantity * 2 } },
     ])
     .toArray();
 
@@ -331,22 +497,26 @@ export async function quickPickTickets(
 
 /**
  * Generates all tickets for a draw based on its configuration.
- * Each (series × range) combination creates a ticket document.
  * Idempotent — uses ordered:false and ignores duplicate key errors.
- * Returns the total number of tickets inserted.
  */
-export async function generateTicketsForDraw(drawId: string | ObjectId): Promise<number> {
+export async function generateTicketsForDraw(
+  drawId: string | ObjectId,
+): Promise<number> {
   const oid = typeof drawId === "string" ? new ObjectId(drawId) : drawId;
   const db = await getDb();
 
-  const draw = await db.collection<DrawDoc>("draws").findOne({ _id: oid });
+  const draw = await db
+    .collection<DrawDoc>("draws")
+    .findOne({ _id: oid });
   if (!draw) throw new Error("Draw not found.");
 
   const { series, ticketPrefix, ticketRangeStart, ticketRangeEnd } = draw;
   const now = new Date();
 
-  // Total tickets per series — guard against huge ranges (max 100 000)
-  const rangeSize = Math.min(ticketRangeEnd - ticketRangeStart + 1, 100_000);
+  const rangeSize = Math.min(
+    ticketRangeEnd - ticketRangeStart + 1,
+    100_000,
+  );
   const BATCH = 1_000;
 
   let inserted = 0;
@@ -358,39 +528,30 @@ export async function generateTicketsForDraw(drawId: string | ObjectId): Promise
       const docs: Omit<TicketDoc, "_id">[] = [];
 
       for (let n = batchStart; n <= batchEnd; n++) {
-        const numericPart = n;
-        const number = `${ticketPrefix}-${s}-${n}`;
-
-        // LP-special: last 100 numbers in range per series
         const isLpSpecial = n >= ticketRangeEnd - 99;
-        const category: TicketDoc["category"] = isLpSpecial ? "lp_special" : "regular";
-
         docs.push({
           drawId: oid,
           series: s,
-          number,
-          numericPart,
+          number: `${ticketPrefix}-${s}-${n}`,
+          numericPart: n,
           status: "available",
-          category,
+          category: isLpSpecial ? "lp_special" : "regular",
           createdAt: now,
         });
       }
 
       try {
-        const result = await db.collection<TicketDoc>("tickets").insertMany(
-          docs as TicketDoc[],
-          { ordered: false },
-        );
+        const result = await db
+          .collection<TicketDoc>("tickets")
+          .insertMany(docs as TicketDoc[], { ordered: false });
         inserted += result.insertedCount;
       } catch (err: unknown) {
-        // BulkWriteError with code 11000 = duplicate key — safely skip those
         if (
           err &&
           typeof err === "object" &&
           "code" in err &&
           (err as { code: number }).code === 11000
         ) {
-          // partial insert — count what was inserted
           const be = err as { result?: { nInserted?: number } };
           inserted += be.result?.nInserted ?? 0;
         } else {
@@ -401,36 +562,52 @@ export async function generateTicketsForDraw(drawId: string | ObjectId): Promise
       batchStart = batchEnd + 1;
     }
 
-    // Safety guard against infinite loop for very large ranges
     if (rangeSize >= 100_000) break;
   }
 
   return inserted;
 }
 
-// ─── Index setup (called from seed script) ───────────────────────────────────
+// ─── Index setup ─────────────────────────────────────────────────────────────
 
 export async function ensureIndexes(): Promise<void> {
   const db = await getDb();
 
-  // Migration: old schema used a global unique index on `number` which prevents
-  // multiple draws from sharing the same ticket numbers (e.g. SL-A-10001).
-  // We need uniqueness per draw instead: (drawId, number).
-  const existingIndexes = await db.collection<TicketDoc>("tickets").indexes();
-  const hasOldNumberUnique = existingIndexes.some((idx) => idx.name === "number_unique");
+  const existingIndexes = await db
+    .collection<TicketDoc>("tickets")
+    .indexes();
+  const hasOldNumberUnique = existingIndexes.some(
+    (idx) => idx.name === "number_unique",
+  );
   if (hasOldNumberUnique) {
     await db.collection<TicketDoc>("tickets").dropIndex("number_unique");
   }
 
   await db.collection<TicketDoc>("tickets").createIndexes([
-    { key: { drawId: 1, series: 1, status: 1 }, name: "draw_series_status" },
-    { key: { drawId: 1, series: 1, category: 1 }, name: "draw_series_category" },
-    { key: { drawId: 1, number: 1 }, name: "draw_number_unique", unique: true },
+    {
+      key: { drawId: 1, series: 1, status: 1 },
+      name: "draw_series_status",
+    },
+    {
+      key: { drawId: 1, series: 1, category: 1 },
+      name: "draw_series_category",
+    },
+    {
+      key: { drawId: 1, number: 1 },
+      name: "draw_number_unique",
+      unique: true,
+    },
     { key: { drawId: 1, bookedBy: 1 }, name: "draw_bookedby" },
     { key: { drawId: 1, numericPart: 1 }, name: "draw_numeric" },
   ]);
 
   await db.collection<DrawDoc>("draws").createIndexes([
     { key: { status: 1, drawDate: 1 }, name: "status_date" },
+    { key: { expiresAt: 1, status: 1 }, name: "expires_status" },
+    {
+      key: { drawSeriesName: 1, drawNumber: 1 },
+      name: "series_number",
+      sparse: true,
+    },
   ]);
 }

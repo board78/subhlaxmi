@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
     const amountStr = orderAmount.toFixed(2);
 
     const origin = getPublicAppOrigin(request);
-    const returnUrl = `${origin}/payment-status?orderId=${merchantOrderNo}`;
-    const callbackUrl = `${origin}/api/payments/qpc/callback`;
+    const redirectUrl = `${origin}/payment-status?orderId=${merchantOrderNo}`;
+    const notifyUrl = `${origin}/api/payments/qpc/callback`;
 
     const signature = qpcPayinSign(merchantId, merchantOrderNo, amountStr, merchantKey);
     const totalTickets = cart.items.reduce((s, i) => s + i.ticketNumbers.length, 0);
@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
       amount: amountStr,
       currency: "INR",
       signature,
-      returnUrl,
-      callbackUrl,
+      redirectUrl,
+      notifyUrl,
       description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
       payer,
     });

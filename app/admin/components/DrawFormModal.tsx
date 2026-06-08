@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type DrawFormData = {
-  name: string;
+  drawSeriesName: string;
   drawDate: string;
   drawTime: string;
   pricePerTicket: number | "";
@@ -12,26 +12,26 @@ export type DrawFormData = {
   ticketPrefix: string;
   ticketRangeStart: number | "";
   ticketRangeEnd: number | "";
-  status: "upcoming" | "active" | "closed" | "drawn";
   prizeAmount: string;
 };
 
 const EMPTY_FORM: DrawFormData = {
-  name: "",
+  drawSeriesName: "",
   drawDate: "",
-  drawTime: "",
+  drawTime: "6:00 PM",
   pricePerTicket: "",
   series: "A,B,C",
   ticketPrefix: "SL",
   ticketRangeStart: 10000,
   ticketRangeEnd: 99999,
-  status: "upcoming",
   prizeAmount: "",
 };
 
 export type DrawForEdit = {
   id: string;
   name: string;
+  drawSeriesName?: string;
+  drawNumber?: number;
   drawDate: string;
   drawTime: string;
   pricePerTicket: number;
@@ -50,17 +50,11 @@ type Props = {
   onSaved: () => void;
 };
 
-const STATUS_OPTIONS: { value: DrawFormData["status"]; label: string; color: string }[] = [
-  { value: "upcoming", label: "Upcoming", color: "text-blue-300" },
-  { value: "active", label: "Active", color: "text-emerald-300" },
-  { value: "closed", label: "Closed", color: "text-zinc-400" },
-  { value: "drawn", label: "Drawn", color: "text-amber-300" },
-];
-
 const inp =
   "w-full rounded-lg border border-white/10 bg-[#0f0810]/80 px-3 py-2 text-[13px] text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-amber-400/50 focus:bg-[#0f0810] focus:ring-1 focus:ring-amber-400/20";
 
-const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500";
+const lbl =
+  "mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500";
 
 export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
   const [form, setForm] = useState<DrawFormData>(EMPTY_FORM);
@@ -71,7 +65,7 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
     if (!open) return;
     if (editDraw) {
       setForm({
-        name: editDraw.name,
+        drawSeriesName: editDraw.drawSeriesName ?? editDraw.name,
         drawDate: editDraw.drawDate.slice(0, 10),
         drawTime: editDraw.drawTime,
         pricePerTicket: editDraw.pricePerTicket,
@@ -79,7 +73,6 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
         ticketPrefix: editDraw.ticketPrefix,
         ticketRangeStart: editDraw.ticketRangeStart,
         ticketRangeEnd: editDraw.ticketRangeEnd,
-        status: editDraw.status as DrawFormData["status"],
         prizeAmount: editDraw.prizeAmount || "",
       });
     } else {
@@ -91,19 +84,54 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
   const set = (key: keyof DrawFormData, value: unknown) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const previewName = form.drawSeriesName.trim()
+    ? editDraw?.drawNumber
+      ? `${form.drawSeriesName.trim()} #${editDraw.drawNumber}`
+      : `${form.drawSeriesName.trim()} #N`
+    : "";
+
+  // Compute preview activation from drawDate
+  const previewActivatesAt = form.drawDate
+    ? new Date(`${form.drawDate}T00:00:00+05:30`)
+    : null;
+  const previewExpiresAt = previewActivatesAt
+    ? new Date(previewActivatesAt.getTime() + 7 * 24 * 60 * 60 * 1000)
+    : null;
+
+  const formatDate = (d: Date | null) =>
+    d
+      ? d.toLocaleString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Kolkata",
+        })
+      : "—";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError("");
     const payload = {
-      ...form,
+      drawSeriesName: form.drawSeriesName.trim(),
+      drawDate: form.drawDate,
+      drawTime: form.drawTime,
       pricePerTicket: Number(form.pricePerTicket),
       ticketRangeStart: Number(form.ticketRangeStart),
       ticketRangeEnd: Number(form.ticketRangeEnd),
-      series: form.series.split(",").map((s) => s.trim()).filter(Boolean),
+      series: form.series
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      ticketPrefix: form.ticketPrefix,
+      prizeAmount: form.prizeAmount,
     };
     try {
-      const url = editDraw ? `/api/admin/draws/${editDraw.id}` : "/api/admin/draws";
+      const url = editDraw
+        ? `/api/admin/draws/${editDraw.id}`
+        : "/api/admin/draws";
       const method = editDraw ? "PUT" : "POST";
       const r = await fetch(url, {
         method,
@@ -138,7 +166,17 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
             <div className="flex items-center justify-between border-b border-white/8 bg-white/[0.02] px-6 py-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                 </span>
@@ -147,7 +185,9 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                     {editDraw ? "Edit Draw" : "Create New Draw"}
                   </h2>
                   <p className="text-[11px] text-zinc-500">
-                    {editDraw ? "Update lottery draw configuration" : "Configure a new lottery draw"}
+                    {editDraw
+                      ? "Update draw — status is auto-managed by date"
+                      : "Status is automatic · 7-day cycle · auto-renews"}
                   </p>
                 </div>
               </div>
@@ -156,39 +196,73 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                 onClick={onClose}
                 className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-zinc-500 transition hover:border-white/20 hover:text-zinc-300"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  aria-hidden
+                >
                   <path d="M6 6l12 12M6 18L18 6" />
                 </svg>
               </button>
             </div>
 
-            {/* ── Form body — no overflow scroll ── */}
             <form onSubmit={handleSubmit}>
               <div className="px-6 py-5 space-y-4">
                 {error && (
                   <div className="flex items-center gap-2.5 rounded-lg border border-red-400/20 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-                      <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      aria-hidden
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4M12 16h.01" />
                     </svg>
                     {error}
                   </div>
                 )}
 
-                {/* Row 1 — Draw Name (full width) */}
+                {/* Row 1 — Series name + prize */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={lbl}>Draw Name <span className="text-amber-400 normal-case tracking-normal">*</span></label>
+                    <label className={lbl}>
+                      Series Name{" "}
+                      <span className="text-amber-400 normal-case tracking-normal">
+                        *
+                      </span>
+                    </label>
                     <input
                       type="text"
                       required
-                      value={form.name}
-                      onChange={(e) => set("name", e.target.value)}
-                      placeholder="e.g. Subhlaxmi Samridhi Lucky Draw"
+                      value={form.drawSeriesName}
+                      onChange={(e) => set("drawSeriesName", e.target.value)}
+                      placeholder="e.g. Subhlaxmi"
                       className={inp}
                     />
+                    {previewName && (
+                      <p className="mt-1 text-[11px] text-amber-400/70">
+                        Will be named:{" "}
+                        <span className="font-semibold">{previewName}</span>
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className={lbl}>Prize Amount <span className="text-zinc-600 normal-case tracking-normal">(optional)</span></label>
+                    <label className={lbl}>
+                      Prize Amount{" "}
+                      <span className="text-zinc-600 normal-case tracking-normal">
+                        (optional)
+                      </span>
+                    </label>
                     <input
                       type="text"
                       value={form.prizeAmount}
@@ -199,23 +273,30 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                   </div>
                 </div>
 
-                {/* Row 2 — Date · Time · Status */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* Row 2 — Activation date + time */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={lbl}>Draw Date <span className="text-amber-400">*</span></label>
+                    <label className={lbl}>
+                      Activation Date{" "}
+                      <span className="text-amber-400">*</span>
+                    </label>
                     <input
                       type="date"
                       required
                       value={form.drawDate}
                       onChange={(e) => set("drawDate", e.target.value)}
                       className={inp}
-                      style={{
-                        colorScheme: "dark",
-                      }}
+                      style={{ colorScheme: "dark" }}
                     />
+                    <p className="mt-1 text-[11px] text-zinc-600">
+                      Goes live at 12 AM IST on this date
+                    </p>
                   </div>
                   <div>
-                    <label className={lbl}>Draw Time <span className="text-amber-400">*</span></label>
+                    <label className={lbl}>
+                      Display Time{" "}
+                      <span className="text-amber-400">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -224,39 +305,68 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                       placeholder="e.g. 6:00 PM"
                       className={inp}
                     />
-                  </div>
-                  <div>
-                    <label className={lbl}>Status <span className="text-amber-400">*</span></label>
-                    <select
-                      value={form.status}
-                      onChange={(e) => set("status", e.target.value)}
-                      className={inp}
-                    >
-                      {STATUS_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value} className="bg-[#170d14]">
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
+                    <p className="mt-1 text-[11px] text-zinc-600">
+                      Shown on draw cards as result time
+                    </p>
                   </div>
                 </div>
+
+                {/* Activation preview */}
+                {previewActivatesAt && (
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-400/70 mb-1.5">
+                      Auto-schedule preview
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-zinc-300">
+                      <div>
+                        <span className="text-zinc-500">Activates:</span>
+                        <br />
+                        <span className="font-semibold text-emerald-300">
+                          {formatDate(previewActivatesAt)} IST
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500">
+                          Expires (7 days later):
+                        </span>
+                        <br />
+                        <span className="font-semibold text-amber-300">
+                          {formatDate(previewExpiresAt)} IST
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[10px] text-zinc-600">
+                      After expiry, <strong>{form.drawSeriesName.trim() || "this series"}</strong> auto-renews to the next number.
+                    </p>
+                  </div>
+                )}
 
                 {/* Row 3 — Price · Series · Prefix */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className={lbl}>Price / Ticket (₹) <span className="text-amber-400">*</span></label>
+                    <label className={lbl}>
+                      Price / Ticket (₹){" "}
+                      <span className="text-amber-400">*</span>
+                    </label>
                     <input
                       type="number"
                       required
                       min={1}
                       value={form.pricePerTicket}
-                      onChange={(e) => set("pricePerTicket", e.target.value === "" ? "" : Number(e.target.value))}
+                      onChange={(e) =>
+                        set(
+                          "pricePerTicket",
+                          e.target.value === "" ? "" : Number(e.target.value),
+                        )
+                      }
                       placeholder="100"
                       className={inp}
                     />
                   </div>
                   <div>
-                    <label className={lbl}>Series <span className="text-amber-400">*</span></label>
+                    <label className={lbl}>
+                      Series <span className="text-amber-400">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -267,12 +377,16 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                     />
                   </div>
                   <div>
-                    <label className={lbl}>Ticket Prefix <span className="text-amber-400">*</span></label>
+                    <label className={lbl}>
+                      Ticket Prefix <span className="text-amber-400">*</span>
+                    </label>
                     <input
                       type="text"
                       required
                       value={form.ticketPrefix}
-                      onChange={(e) => set("ticketPrefix", e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        set("ticketPrefix", e.target.value.toUpperCase())
+                      }
                       placeholder="SL"
                       maxLength={6}
                       className={inp}
@@ -282,13 +396,18 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
 
                 {/* Row 4 — Ticket Range */}
                 <div>
-                  <label className={lbl}>Ticket Number Range <span className="text-amber-400">*</span></label>
+                  <label className={lbl}>
+                    Ticket Number Range{" "}
+                    <span className="text-amber-400">*</span>
+                  </label>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
                       required
                       value={form.ticketRangeStart}
-                      onChange={(e) => set("ticketRangeStart", Number(e.target.value))}
+                      onChange={(e) =>
+                        set("ticketRangeStart", Number(e.target.value))
+                      }
                       placeholder="10000"
                       className={inp}
                     />
@@ -297,17 +416,23 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                       type="number"
                       required
                       value={form.ticketRangeEnd}
-                      onChange={(e) => set("ticketRangeEnd", Number(e.target.value))}
+                      onChange={(e) =>
+                        set("ticketRangeEnd", Number(e.target.value))
+                      }
                       placeholder="99999"
                       className={inp}
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-zinc-600">
-                    Total tickets per series: {
-                      form.ticketRangeStart !== "" && form.ticketRangeEnd !== ""
-                        ? Math.max(0, Number(form.ticketRangeEnd) - Number(form.ticketRangeStart) + 1).toLocaleString("en-IN")
-                        : "—"
-                    }
+                    Total tickets per series:{" "}
+                    {form.ticketRangeStart !== "" && form.ticketRangeEnd !== ""
+                      ? Math.max(
+                          0,
+                          Number(form.ticketRangeEnd) -
+                            Number(form.ticketRangeStart) +
+                            1,
+                        ).toLocaleString("en-IN")
+                      : "—"}
                   </p>
                 </div>
               </div>

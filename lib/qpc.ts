@@ -228,8 +228,8 @@ export async function callQpcPayinCreate(input: {
   amount: string;
   currency: string;
   signature: string;
-  returnUrl: string;
-  callbackUrl: string;
+  redirectUrl: string;
+  notifyUrl: string;
   description?: string;
   payer?: QpcPayerInput;
 }): Promise<{ ok: true; data: QpcCreateData } | { ok: false; error: string }> {
@@ -244,8 +244,8 @@ export async function callQpcPayinCreate(input: {
     payerEmail: payer.payerEmail,
     payerMobile: payer.payerMobile,
     description: input.description?.trim() || "Payment for order " + input.merchantOrderNo,
-    returnUrl: input.returnUrl,
-    callbackUrl: input.callbackUrl,
+    redirectUrl: input.redirectUrl,
+    notifyUrl: input.notifyUrl,
     signature: input.signature,
   };
 
