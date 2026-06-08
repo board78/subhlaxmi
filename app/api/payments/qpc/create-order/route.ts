@@ -3,6 +3,7 @@ import { getSessionUser, jsonError } from "@/lib/auth";
 import { upsertPendingPayment } from "@/lib/payments";
 import {
   callQpcPayinCreate,
+  generateMerchantOrderNo,
   getQpcMerchantId,
   getQpcMerchantKey,
   normalizeDeepLink,
@@ -44,6 +45,14 @@ export async function POST(request: NextRequest) {
     const orderAmount = Math.round((subtotal + gst) * 100) / 100;
     if (orderAmount <= 0) return jsonError("Invalid cart total.");
 
+    // QPC minimum transaction is ₹100. Below this their API returns 502.
+    if (orderAmount < 100) {
+      return jsonError(
+        `Minimum order amount for online payment is ₹100. Your cart total is ₹${orderAmount.toFixed(2)}. Please add more tickets.`,
+        400,
+      );
+    }
+
     const merchantId = getQpcMerchantId();
     const merchantKey = getQpcMerchantKey();
     if (!merchantId || !merchantKey) {
@@ -59,12 +68,12 @@ export async function POST(request: NextRequest) {
       phone: (userDoc?.phone as string | null) ?? null,
     };
 
-    const merchantOrderNo = `ORD${Date.now()}${Math.random().toString(16).slice(2, 6)}`.slice(0, 50);
+    const merchantOrderNo = generateMerchantOrderNo();
     const amountStr = orderAmount.toFixed(2);
 
     const origin = getPublicAppOrigin(request);
-    const returnUrl = `${origin}/payment-status?orderId=${merchantOrderNo}`;
-    const callbackUrl = `${origin}/api/payments/qpc/callback`;
+    const redirectUrl = `${origin}/payment-status?orderId=${merchantOrderNo}`;
+    const notifyUrl = `${origin}/api/payments/qpc/callback`;
 
     const signature = qpcPayinSign(merchantId, merchantOrderNo, amountStr, merchantKey);
     const totalTickets = cart.items.reduce((s, i) => s + i.ticketNumbers.length, 0);
@@ -75,9 +84,14 @@ export async function POST(request: NextRequest) {
       amount: amountStr,
       currency: "INR",
       signature,
+<<<<<<< HEAD
       returnUrl,
       callbackUrl,
       redirectUrl: returnUrl,
+=======
+      redirectUrl,
+      notifyUrl,
+>>>>>>> 5bdb3c7886623786b465e5cb2f134738356a2e34
       description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
       payer,
     });
