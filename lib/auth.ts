@@ -54,10 +54,11 @@ type UserDoc = {
 type EmailVerificationDoc = {
   _id: ObjectId;
   email: string;
-  purpose: "register";
+  purpose: "register" | "reset_password";
   codeHash: string;
   attempts: number;
   registrationTokenHash?: string;
+  resetTokenHash?: string;
   verifiedAt?: Date;
   consumedAt?: Date;
   expiresAt: Date;
@@ -511,4 +512,178 @@ async function sendVerificationEmail(email: string, code: string) {
   });
 
   return { delivered: true };
+}
+
+export async function requestPasswordResetOtp(email: string) {
+  const db = await getDb();
+  // Check if user exists
+  const existingUser = await db.collection<UserDoc>("users").findOne({ email });
+  if (!existingUser) {
+    throw new Error("No account found with this email address.");
+  }
+
+  const code = randomInt(100000, 1000000).toString();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + OTP_MAX_AGE_MINUTES * 60 * 1000);
+
+  await db.collection<EmailVerificationDoc>("email_verifications").updateOne(
+    { email, purpose: "reset_password" },
+    {
+      $set: {
+        codeHash: hashOtp(email, code),
+        attempts: 0,
+        expiresAt,
+        createdAt: now,
+        updatedAt: now,
+      },
+      $unset: {
+        registrationTokenHash: "",
+        resetTokenHash: "",
+        verifiedAt: "",
+        consumedAt: "",
+      },
+    },
+    { upsert: true },
+  );
+
+  const delivery = await sendPasswordResetEmail(email, code);
+  return {
+    expiresInMinutes: OTP_MAX_AGE_MINUTES,
+    ...delivery,
+  };
+}
+
+async function sendPasswordResetEmail(email: string, code: string) {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT ?? 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "");
+  const from = process.env.SMTP_FROM ?? "Subhlaxmi <no-reply@subhlaxmi.local>";
+
+  if (!host || !user || !pass) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Email service is not configured.");
+    }
+    return { delivered: false, devCode: code };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    requireTLS: port === 587 ? true : undefined,
+    family: 4, // Force IPv4 to avoid IPv6 ENETUNREACH errors
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
+  } as any);
+
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject: "Reset your Subhlaxmi password",
+    text: `Your Subhlaxmi password reset code is ${code}. It expires in ${OTP_MAX_AGE_MINUTES} minutes.`,
+    html: `
+      <div style="background-color: #12040c; padding: 30px; font-family: sans-serif; color: #e4e4e7; max-width: 500px; margin: 0 auto; border-radius: 12px; border: 1px solid #332233;">
+        <h2 style="color: #fbbf24; text-align: center; margin-bottom: 24px;">Reset Password</h2>
+        <p>You requested a password reset for your Subhlaxmi account. Use the verification code below to set a new password:</p>
+        <div style="background-color: #1c0d17; padding: 16px; border-radius: 8px; text-align: center; font-size: 24px; font-weight: bold; color: #fbbf24; letter-spacing: 0.1em; margin: 24px 0; border: 1px dashed rgba(251, 191, 36, 0.3);">
+          ${code}
+        </div>
+        <p style="font-size: 12px; color: #71717a; text-align: center;">This code expires in ${OTP_MAX_AGE_MINUTES} minutes. If you did not make this request, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+
+  return { delivered: true };
+}
+
+export async function verifyPasswordResetOtp(email: string, code: unknown) {
+  if (typeof code !== "string" || !/^\d{6}$/.test(code.trim())) {
+    throw new Error("Enter the 6 digit verification code.");
+  }
+
+  const db = await getDb();
+  const verification = await db.collection<EmailVerificationDoc>("email_verifications").findOne({
+    email,
+    purpose: "reset_password",
+    consumedAt: { $exists: false },
+  });
+
+  if (!verification || verification.expiresAt.getTime() < Date.now()) {
+    throw new Error("Verification code expired. Please request a new code.");
+  }
+
+  if (verification.attempts >= MAX_OTP_ATTEMPTS) {
+    throw new Error("Too many attempts. Please request a new code.");
+  }
+
+  const matches = safeCompare(verification.codeHash, hashOtp(email, code.trim()));
+
+  if (!matches) {
+    await db
+      .collection<EmailVerificationDoc>("email_verifications")
+      .updateOne({ _id: verification._id }, { $inc: { attempts: 1 }, $set: { updatedAt: new Date() } });
+    throw new Error("Incorrect verification code.");
+  }
+
+  const resetToken = randomBytes(32).toString("hex");
+  await db.collection<EmailVerificationDoc>("email_verifications").updateOne(
+    { _id: verification._id },
+    {
+      $set: {
+        resetTokenHash: hmac(resetToken),
+        verifiedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    },
+  );
+
+  return resetToken;
+}
+
+export async function completePasswordReset({
+  email,
+  password,
+  resetToken,
+}: {
+  email: string;
+  password: string;
+  resetToken: unknown;
+}): Promise<SafeUser> {
+  if (typeof resetToken !== "string" || resetToken.length < 32) {
+    throw new Error("Email verification is required before resetting your password.");
+  }
+
+  const db = await getDb();
+  const verification = await db.collection<EmailVerificationDoc>("email_verifications").findOne({
+    email,
+    purpose: "reset_password",
+    consumedAt: { $exists: false },
+    resetTokenHash: hmac(resetToken),
+  });
+
+  if (!verification || verification.expiresAt.getTime() < Date.now()) {
+    throw new Error("Reset session expired. Please verify your email again.");
+  }
+
+  const user = await db.collection<UserDoc>("users").findOne({ email });
+  if (!user) {
+    throw new Error("Account not found.");
+  }
+
+  const now = new Date();
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  await db.collection<UserDoc>("users").updateOne(
+    { _id: user._id },
+    { $set: { passwordHash, updatedAt: now } }
+  );
+
+  await db
+    .collection<EmailVerificationDoc>("email_verifications")
+    .updateOne({ _id: verification._id }, { $set: { consumedAt: now, updatedAt: now } });
+
+  return toSafeUser(user);
 }
