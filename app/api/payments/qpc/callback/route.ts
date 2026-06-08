@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
     // Even if ticket confirmation fails below, the payment is recorded
     // as processed so we can investigate without double-charging the user.
     await markPaymentProcessed("qpc", merchantOrderNo, "processed");
+<<<<<<< HEAD
 
     // Confirm tickets — per-draw errors are caught inside fulfillTickets
     try {
@@ -189,6 +190,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+=======
+    // Get user details to send email
+    try {
+      const db = await getDb();
+      const userId = new ObjectId(pending.userId);
+      const cart = pending.cart as CartState;
+
+      const userDoc = await db.collection("users").findOne({ _id: userId });
+      if (userDoc?.email) {
+        void sendBookingConfirmationEmail({
+          email: userDoc.email,
+          name: userDoc.name || "Customer",
+          orderId: merchantOrderNo,
+          amount: pending.orderAmount,
+          items: cart.items,
+        }).catch((err) => console.error("[QPC callback] Email error:", err));
+      }
+
+      // Clear user's cart in DB upon successful booking
+      await db.collection("carts").updateOne(
+        { userId },
+        { $set: { cart: { items: [], updatedAt: new Date().toISOString() }, updatedAt: new Date() } }
+      );
+    } catch (err) {
+      console.error("[QPC callback] Email / cart clearing failed:", err);
+    }
+
+    console.log("[QPC callback] tickets booked for", merchantOrderNo);
+>>>>>>> 0edbc90 (fix: resolve qpc conflict markers and update callback parameters)
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
     // Top-level catch — always return 200 so QPC does not keep retrying
