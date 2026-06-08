@@ -8,6 +8,7 @@ import {
   getQpcMerchantKey,
   verifyCallbackSign,
 } from "@/lib/qpc";
+import { sendBookingConfirmationEmail } from "@/lib/emails";
 
 type CartTicketItem = {
   drawId: string;
@@ -172,7 +173,6 @@ export async function POST(request: NextRequest) {
     // Even if ticket confirmation fails below, the payment is recorded
     // as processed so we can investigate without double-charging the user.
     await markPaymentProcessed("qpc", merchantOrderNo, "processed");
-<<<<<<< HEAD
 
     // Confirm tickets — per-draw errors are caught inside fulfillTickets
     try {
@@ -190,7 +190,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-=======
     // Get user details to send email
     try {
       const db = await getDb();
@@ -218,7 +217,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[QPC callback] tickets booked for", merchantOrderNo);
->>>>>>> 0edbc90 (fix: resolve qpc conflict markers and update callback parameters)
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
     // Top-level catch — always return 200 so QPC does not keep retrying
