@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clearCart } from "@/app/cart/cartStorage";
 
 type Status = "checking" | "success" | "failed" | "timeout";
+type LoopKey = number;
 
 type DrawInfo = { name: string; tickets: number; numbers: string[] };
 
@@ -234,10 +235,16 @@ function PaymentStatusContent() {
   const [draws, setDraws] = useState<DrawInfo[]>([]);
   const [amount, setAmount] = useState<number | null>(null);
   const [polls, setPolls] = useState(0);
+  // Bumping this key restarts the polling loop (used by "Check Again")
+  const [loopKey, setLoopKey] = useState<LoopKey>(0);
 
   const canvasRef = useFireworks(status === "success");
 
-  const MAX_POLLS = 45;
+  // First poll waits 2 s to give the QPC server-to-server callback a head start.
+  // Subsequent polls every 3 s for up to 30 attempts (≈ 92 s total).
+  const FIRST_DELAY_MS = 2000;
+  const POLL_INTERVAL_MS = 3000;
+  const MAX_POLLS = 30;
 
   const checkStatus = useCallback(async (): Promise<boolean> => {
     if (!orderId) return false;
@@ -247,6 +254,9 @@ function PaymentStatusContent() {
         router.push(`/?auth=signin&next=${encodeURIComponent(`/payment-status?orderId=${orderId}`)}`);
         return true;
       }
+      // Any non-2xx that isn't 401 — keep polling (order record may not exist yet)
+      if (!res.ok && res.status !== 404) return false;
+
       const data = (await res.json()) as QpcStatusResponse;
 
       if (data.status === "SUCCESS") {
@@ -275,7 +285,7 @@ function PaymentStatusContent() {
         return true;
       }
     } catch {
-      // network error, keep polling
+      // network error — keep polling
     }
     return false;
   }, [orderId, router]);
@@ -293,12 +303,14 @@ function PaymentStatusContent() {
       const done = await checkStatus();
       if (done || cancelled) return;
       if (count >= MAX_POLLS) { setStatus("timeout"); return; }
-      setTimeout(tick, 2000);
+      setTimeout(tick, POLL_INTERVAL_MS);
     };
 
-    tick();
-    return () => { cancelled = true; };
-  }, [orderId, checkStatus]);
+    // Small initial delay so the QPC callback has time to mark the order processed
+    // before we even hit the DB — removes an unnecessary round-trip in the happy path.
+    const init = setTimeout(tick, FIRST_DELAY_MS);
+    return () => { cancelled = true; clearTimeout(init); };
+  }, [orderId, checkStatus, loopKey]);
 
   const totalTickets = draws.reduce((s, d) => s + d.tickets, 0);
 
@@ -347,7 +359,7 @@ function PaymentStatusContent() {
                 />
               </div>
               <p className="mt-2 text-[10px] text-zinc-600">
-                {polls}/{MAX_POLLS} checks · up to 90 s
+                {polls}/{MAX_POLLS} checks · up to ~90 s
               </p>
             </div>
           </motion.div>
@@ -503,7 +515,7 @@ function PaymentStatusContent() {
               <div className="mt-6 flex flex-col gap-2.5">
                 <button
                   type="button"
-                  onClick={() => { setStatus("checking"); setPolls(0); }}
+                  onClick={() => { setPolls(0); setStatus("checking"); setLoopKey((k) => k + 1); }}
                   className="w-full rounded-full sl-cta-gradient py-3 text-sm font-bold sl-force-light-text"
                 >
                   Check Again

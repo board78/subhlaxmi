@@ -15,13 +15,21 @@ export type PendingPaymentDoc = {
   processedAt?: Date;
 };
 
-export async function upsertPendingPayment(input: Omit<PendingPaymentDoc, "_id"> & { platOrderNo?: string }) {
+export async function upsertPendingPayment(
+  input: Omit<PendingPaymentDoc, "_id"> & { platOrderNo?: string },
+) {
   const db = await getDb();
+
+  // Destructure createdAt out so it never lands in $set —
+  // it must only appear in $setOnInsert to avoid the MongoDB
+  // "conflict at createdAt" error on upsert.
+  const { createdAt, ...rest } = input;
+
   await db.collection<PendingPaymentDoc>("payments").updateOne(
     { provider: input.provider, orderId: input.orderId },
     {
-      $set: { ...input, updatedAt: new Date() },
-      $setOnInsert: { createdAt: input.createdAt },
+      $set: { ...rest, updatedAt: new Date() },
+      $setOnInsert: { createdAt },
     },
     { upsert: true },
   );
@@ -32,7 +40,9 @@ export async function getPendingPayment(
   orderId: string,
 ) {
   const db = await getDb();
-  return db.collection<PendingPaymentDoc>("payments").findOne({ provider, orderId });
+  return db
+    .collection<PendingPaymentDoc>("payments")
+    .findOne({ provider, orderId });
 }
 
 export async function markPaymentProcessed(
@@ -41,10 +51,8 @@ export async function markPaymentProcessed(
   status: PendingPaymentDoc["status"],
 ) {
   const db = await getDb();
-  await db
-    .collection<PendingPaymentDoc>("payments")
-    .updateOne(
-      { provider, orderId },
-      { $set: { status, processedAt: new Date(), updatedAt: new Date() } },
-    );
+  await db.collection<PendingPaymentDoc>("payments").updateOne(
+    { provider, orderId },
+    { $set: { status, processedAt: new Date(), updatedAt: new Date() } },
+  );
 }

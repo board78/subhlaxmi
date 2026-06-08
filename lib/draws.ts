@@ -34,6 +34,10 @@ export type TicketDoc = {
   bookedBy?: ObjectId;
   bookedAt?: Date;
   transactionId?: string;
+  // Reservation fields (set during checkout, cleared on confirm/release)
+  reservedBy?: ObjectId;
+  reservedAt?: Date;
+  reservationExpiresAt?: Date;
   createdAt: Date;
 };
 
@@ -151,7 +155,8 @@ function toTicketPublic(doc: TicketDoc): TicketPublic {
     number: doc.number,
     numericPart: doc.numericPart,
     series: doc.series,
-    status: doc.status === "sold" ? "sold" : "available",
+    // Reserved tickets appear as "sold" to other users — they cannot select them
+    status: doc.status === "available" ? "available" : "sold",
     category: doc.category,
   };
 }
@@ -323,6 +328,8 @@ type TicketsFilter = {
 export async function getTicketsForDraw(drawId: string, filter: TicketsFilter) {
   if (!ObjectId.isValid(drawId)) return null;
   const db = await getDb();
+  // Release expired reservations so users see an accurate available count
+  await releaseExpiredReservations(db);
   const oid = new ObjectId(drawId);
 
   const query: Record<string, unknown> = { drawId: oid, series: filter.series };
@@ -493,6 +500,199 @@ export async function quickPickTickets(
   return bookTicketsByNumbers(userId, drawId, numbers);
 }
 
+// ─── Reservation system ───────────────────────────────────────────────────────
+// Tickets are reserved at checkout and confirmed (sold) when payment succeeds.
+// This prevents two users from paying for the same ticket simultaneously.
+
+/** How long a reservation is held (20 minutes). */
+const RESERVATION_TTL_MS = 20 * 60 * 1000;
+
+export type ReservationResult = {
+  reserved: string[];   // ticket numbers successfully reserved
+  failed: string[];     // ticket numbers already taken by someone else
+};
+
+/**
+ * Releases all reservations that have passed their TTL.
+ * Called at the start of reserveTickets and getTicketsForDraw so the
+ * available list is always fresh without needing a separate cron job.
+ */
+export async function releaseExpiredReservations(db: Awaited<ReturnType<typeof getDb>>): Promise<number> {
+  const result = await db.collection<TicketDoc>("tickets").updateMany(
+    { status: "reserved", reservationExpiresAt: { $lt: new Date() } },
+    {
+      $set: { status: "available" },
+      $unset: { reservedBy: "", reservedAt: "", reservationExpiresAt: "" },
+    },
+  );
+  if (result.modifiedCount > 0) {
+    console.log(`[draws] Released ${result.modifiedCount} expired reservations`);
+  }
+  return result.modifiedCount;
+}
+
+/**
+ * Atomically reserves a list of specific ticket numbers for a user.
+ * - Clears expired reservations first so stale holds don't block.
+ * - Allows the same user to re-reserve (retry/reload checkout).
+ * - Any ticket already reserved by another user goes into `failed`.
+ */
+export async function reserveTickets(
+  userId: string,
+  drawId: string,
+  ticketNumbers: string[],
+): Promise<ReservationResult> {
+  if (!ObjectId.isValid(userId) || !ObjectId.isValid(drawId)) {
+    throw new Error("Invalid user or draw ID.");
+  }
+  if (!ticketNumbers.length || ticketNumbers.length > 100) {
+    throw new Error("Select between 1 and 100 tickets.");
+  }
+
+  const db = await getDb();
+  await releaseExpiredReservations(db);
+
+  const userOid = new ObjectId(userId);
+  const drawOid = new ObjectId(drawId);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + RESERVATION_TTL_MS);
+
+  const reserved: string[] = [];
+  const failed: string[] = [];
+
+  await Promise.all(
+    ticketNumbers.map(async (number) => {
+      const result = await db.collection<TicketDoc>("tickets").findOneAndUpdate(
+        {
+          number,
+          drawId: drawOid,
+          $or: [
+            { status: "available" },
+            // Same user can re-reserve (handles checkout retries)
+            { status: "reserved", reservedBy: userOid },
+          ],
+        },
+        {
+          $set: {
+            status: "reserved",
+            reservedBy: userOid,
+            reservedAt: now,
+            reservationExpiresAt: expiresAt,
+          },
+        },
+        { returnDocument: "after" },
+      );
+      if (result) {
+        reserved.push(number);
+      } else {
+        failed.push(number);
+      }
+    }),
+  );
+
+  return { reserved, failed };
+}
+
+/**
+ * Releases all reservations held by a user for a specific draw.
+ * Called when payment creation fails or the user cancels.
+ */
+export async function releaseReservations(
+  userId: string,
+  ticketNumbers: string[],
+  drawId: string,
+): Promise<void> {
+  if (!ticketNumbers.length) return;
+  if (!ObjectId.isValid(userId) || !ObjectId.isValid(drawId)) return;
+
+  const db = await getDb();
+  await db.collection<TicketDoc>("tickets").updateMany(
+    {
+      number: { $in: ticketNumbers },
+      drawId: new ObjectId(drawId),
+      status: "reserved",
+      reservedBy: new ObjectId(userId),
+    },
+    {
+      $set: { status: "available" },
+      $unset: { reservedBy: "", reservedAt: "", reservationExpiresAt: "" },
+    },
+  );
+}
+
+/**
+ * Confirms reserved tickets → marks them sold.
+ * Primary path: match reserved-by-user (normal payment flow).
+ * Fallback path: if reservation expired but ticket is still available,
+ *                book it anyway (handles slow payments > 20 min).
+ *
+ * MongoDB's findOneAndUpdate is atomic — no double-booking can occur.
+ */
+export async function confirmReservedTickets(
+  userId: string,
+  drawId: string,
+  ticketNumbers: string[],
+): Promise<BookingResult> {
+  if (!ObjectId.isValid(userId) || !ObjectId.isValid(drawId)) {
+    throw new Error("Invalid user or draw ID.");
+  }
+  if (!ticketNumbers.length || ticketNumbers.length > 100) {
+    throw new Error("Select between 1 and 100 tickets.");
+  }
+
+  const db = await getDb();
+  const userOid = new ObjectId(userId);
+  const drawOid = new ObjectId(drawId);
+  const bookedAt = new Date();
+
+  const booked: TicketPublic[] = [];
+  const failed: string[] = [];
+
+  await Promise.all(
+    ticketNumbers.map(async (number) => {
+      const result = await db.collection<TicketDoc>("tickets").findOneAndUpdate(
+        {
+          number,
+          drawId: drawOid,
+          $or: [
+            // Normal path: ticket was reserved by this user
+            { status: "reserved", reservedBy: userOid },
+            // Fallback: reservation expired but ticket still available
+            { status: "available" },
+          ],
+        },
+        {
+          $set: { status: "sold", bookedBy: userOid, bookedAt },
+          $unset: { reservedBy: "", reservedAt: "", reservationExpiresAt: "" },
+        },
+        { returnDocument: "after" },
+      );
+      if (result) {
+        booked.push(toTicketPublic(result));
+      } else {
+        // Ticket is either sold to someone else or doesn't exist
+        failed.push(number);
+      }
+    }),
+  );
+
+  if (!booked.length) {
+    throw new Error(
+      "All selected tickets are no longer available. Payment received — contact support with your order ID.",
+    );
+  }
+
+  const draw = await db
+    .collection<DrawDoc>("draws")
+    .findOne({ _id: drawOid });
+  const pricePerTicket = draw?.pricePerTicket ?? 0;
+  const gst = Math.round(pricePerTicket * 0.18 * 100) / 100;
+  const total =
+    Math.round(booked.length * (pricePerTicket + gst) * 100) / 100;
+
+  return { booked, failed, total };
+}
+
 // ─── Ticket generation ────────────────────────────────────────────────────────
 
 /**
@@ -599,6 +799,12 @@ export async function ensureIndexes(): Promise<void> {
     },
     { key: { drawId: 1, bookedBy: 1 }, name: "draw_bookedby" },
     { key: { drawId: 1, numericPart: 1 }, name: "draw_numeric" },
+    // Sparse index for efficient expired-reservation cleanup
+    {
+      key: { reservationExpiresAt: 1 },
+      name: "reservation_expiry",
+      sparse: true,
+    },
   ]);
 
   await db.collection<DrawDoc>("draws").createIndexes([

@@ -249,7 +249,9 @@ export async function callQpcPayinCreate(input: {
     signature: input.signature,
   };
 
-  console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount);
+  console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount,
+    "redirectUrl:", input.redirectUrl, "notifyUrl:", input.notifyUrl);
+  console.log("[QPC] Full payload fields:", Object.keys(payload).join(", "));
 
   try {
     const { httpStatus, body } = await qpcHttpsPost(QPC_PAYIN_CREATE_PATH, payload);
@@ -267,28 +269,48 @@ export async function callQpcPayinCreate(input: {
   }
 }
 
+/**
+ * Query live order status from QPC.
+ * Per QPC docs: PayIn status only needs merchantOrderNo — no auth/signature required.
+ * Docs: POST https://portalquickpaycash.com/api/payin/status
+ */
 export async function callQpcPayinStatus(
   merchantOrderNo: string,
 ): Promise<{ ok: true; data: QpcPayinStatusData } | { ok: false; error: string }> {
-  const merchantId = getQpcMerchantId();
-  const merchantKey = getQpcMerchantKey();
-  const signature = qpcPayinSign(merchantId, merchantOrderNo, "", merchantKey);
-
   try {
     const { httpStatus, body } = await qpcHttpsPost(QPC_PAYIN_STATUS_PATH, {
-      merchantId,
       merchantOrderNo,
-      signature,
     });
 
     if (body.cloudflare_error || httpStatus === 502) {
-      return { ok: false, error: body.detail ?? body.title ?? "QPC status unavailable." };
+      return {
+        ok: false,
+        error: body.detail ?? body.title ?? "QPC status unavailable.",
+      };
     }
     if (String(body.status) !== "200" || !body.data) {
-      return { ok: false, error: body.message ?? "QPC status error." };
+      return {
+        ok: false,
+        error: body.message ?? `QPC status error (HTTP ${httpStatus}, status ${body.status}).`,
+      };
     }
-    return { ok: true, data: body.data as QpcPayinStatusData };
+
+    const raw = body.data as QpcPayinStatusData;
+    // Normalise: both "orderStatus" and "status" are used across QPC API versions
+    if (!raw.orderStatus && raw.status) {
+      raw.orderStatus = raw.status;
+    }
+    // Uppercase for consistent comparison
+    if (raw.orderStatus) {
+      raw.orderStatus = raw.orderStatus.toUpperCase();
+    }
+
+    console.log(`[QPC status] Query ${merchantOrderNo} → ${raw.orderStatus}`);
+    return { ok: true, data: raw };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "QPC status failed" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "QPC status request failed",
+    };
   }
 }
