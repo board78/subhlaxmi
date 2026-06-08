@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       signature,
       returnUrl,
       callbackUrl,
+      redirectUrl: returnUrl,
       description: `${totalTickets} lottery ticket${totalTickets !== 1 ? "s" : ""}`,
       payer,
     });

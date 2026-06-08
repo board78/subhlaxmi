@@ -189,6 +189,7 @@ export async function callQpcPayinCreate(input: {
   signature: string;
   returnUrl: string;
   callbackUrl: string;
+  redirectUrl?: string;
   description?: string;
   payer?: QpcPayerInput;
 }): Promise<{ ok: true; data: QpcCreateData } | { ok: false; error: string }> {
@@ -207,6 +208,10 @@ export async function callQpcPayinCreate(input: {
     callbackUrl:     input.callbackUrl,
     signature:       input.signature,
   };
+
+  if (input.redirectUrl) {
+    payload.redirectUrl = input.redirectUrl;
+  }
 
   console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount);
 

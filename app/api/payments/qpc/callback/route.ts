@@ -4,6 +4,7 @@ import { getPendingPayment, markPaymentProcessed } from "@/lib/payments";
 import { bookTicketsByNumbers } from "@/lib/draws";
 import { getDb } from "@/lib/mongodb";
 import { getQpcMerchantId, getQpcMerchantKey, verifyCallbackSign } from "@/lib/qpc";
+import { sendBookingConfirmationEmail } from "@/lib/emails";
 
 type CartTicketItem = {
   drawId: string;
@@ -136,6 +137,33 @@ export async function POST(request: NextRequest) {
     }
 
     await markPaymentProcessed("qpc", merchantOrderNo, "processed");
+
+    // Get user details to send email
+    try {
+      const userDoc = await db.collection("users").findOne({ _id: userId });
+      if (userDoc?.email) {
+        void sendBookingConfirmationEmail({
+          email: userDoc.email,
+          name: userDoc.name || "Customer",
+          orderId: merchantOrderNo,
+          amount: pending.orderAmount,
+          items: cart.items,
+        }).catch((err) => console.error("[QPC callback] Email error:", err));
+      }
+    } catch (emailErr) {
+      console.error("[QPC callback] User details / email send failed:", emailErr);
+    }
+
+    // Clear user's cart in DB upon successful booking
+    try {
+      await db.collection("carts").updateOne(
+        { userId },
+        { $set: { cart: { items: [], updatedAt: new Date().toISOString() }, updatedAt: new Date() } }
+      );
+    } catch (cartErr) {
+      console.error("[QPC callback] DB cart clear failed:", cartErr);
+    }
+
     console.log("[QPC callback] tickets booked for order", merchantOrderNo);
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
