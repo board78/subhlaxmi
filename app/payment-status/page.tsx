@@ -312,6 +312,16 @@ function PaymentStatusContent() {
     return () => { cancelled = true; clearTimeout(init); };
   }, [orderId, checkStatus, loopKey]);
 
+  // Automatically redirect to My Tickets 4 seconds after a successful payment
+  useEffect(() => {
+    if (status === "success") {
+      const redirectTimer = setTimeout(() => {
+        router.push("/my-tickets");
+      }, 4000);
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [status, router]);
+
   const totalTickets = draws.reduce((s, d) => s + d.tickets, 0);
 
   return (
@@ -441,7 +451,7 @@ function PaymentStatusContent() {
               <div className="mt-5 flex flex-col gap-2.5">
                 <button
                   type="button"
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push("/my-tickets")}
                   className="w-full rounded-full sl-cta-gradient py-3 text-sm font-bold sl-force-light-text"
                 >
                   View My Tickets

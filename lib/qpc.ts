@@ -249,9 +249,7 @@ export async function callQpcPayinCreate(input: {
     signature: input.signature,
   };
 
-  console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount,
-    "redirectUrl:", input.redirectUrl, "notifyUrl:", input.notifyUrl);
-  console.log("[QPC] Full payload fields:", Object.keys(payload).join(", "));
+  console.log("[QPC] Creating PayIn:", input.merchantOrderNo, "amount:", input.amount);
 
   try {
     const { httpStatus, body } = await qpcHttpsPost(QPC_PAYIN_CREATE_PATH, payload);
