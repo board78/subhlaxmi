@@ -26,14 +26,17 @@ export async function PUT(
 
     const body = (await request.json()) as Partial<{
       drawSeriesName: string;
-      drawDate: string;
+      startDate: string;    // YYYY-MM-DD IST
+      startTime: string;    // HH:MM IST
+      endDate: string;      // YYYY-MM-DD IST
+      endTime: string;      // HH:MM IST
       drawTime: string;
       pricePerTicket: number;
       series: string[];
       ticketPrefix: string;
       ticketRangeStart: number;
       ticketRangeEnd: number;
-      /** Only "drawn" and "closed" accepted as manual overrides */
+      /** Any of the 4 statuses as manual override */
       status: string;
       prizeAmount: string;
     }>;
@@ -42,15 +45,15 @@ export async function PUT(
 
     if (body.drawSeriesName?.trim())
       $set.drawSeriesName = body.drawSeriesName.trim().slice(0, 100);
-    if (body.drawDate) {
-      // Re-parse with IST midnight when date changes
-      const activatesAt = new Date(`${body.drawDate}T00:00:00+05:30`);
-      const expiresAt = new Date(
-        activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000,
-      );
-      $set.drawDate = activatesAt;
+
+    // Handle start/end datetimes — parse IST datetime strings
+    if (body.startDate && body.startTime) {
+      const activatesAt = new Date(`${body.startDate}T${body.startTime}:00+05:30`);
       $set.activatesAt = activatesAt;
-      $set.expiresAt = expiresAt;
+      $set.drawDate    = activatesAt; // keep drawDate in sync
+    }
+    if (body.endDate && body.endTime) {
+      $set.expiresAt = new Date(`${body.endDate}T${body.endTime}:00+05:30`);
     }
     if (body.drawTime?.trim()) $set.drawTime = body.drawTime.trim();
     if (typeof body.pricePerTicket === "number" && body.pricePerTicket > 0)
@@ -66,17 +69,34 @@ export async function PUT(
     if (typeof body.prizeAmount === "string")
       $set.prizeAmount = body.prizeAmount.trim() || undefined;
 
-    // Only "drawn" and "closed" are allowed as manual status overrides
-    if (body.status === "drawn" || body.status === "closed") {
+    // Manual status override — allow all 4 statuses
+    const allowedStatuses = ["upcoming", "active", "closed", "drawn"];
+    if (body.status && allowedStatuses.includes(body.status)) {
       $set.status = body.status;
     }
 
     const db = await getDb();
-    const result = await db
-      .collection<DrawDoc>("draws")
-      .updateOne({ _id: new ObjectId(id) }, { $set });
+    const col = db.collection<DrawDoc>("draws");
 
-    if (result.matchedCount === 0) return jsonError("Draw not found.", 404);
+    // When forcing upcoming/active: remove expiresAt+activatesAt so
+    // computeDrawStatus() falls back to the stored status field.
+    // IMPORTANT: delete from $set first — MongoDB disallows the same field
+    // in both $set and $unset in a single operation.
+    let matched = 0;
+    if (body.status === "upcoming" || body.status === "active") {
+      delete $set.expiresAt;
+      delete $set.activatesAt;
+      const r = await col.updateOne(
+        { _id: new ObjectId(id) },
+        { $set, $unset: { expiresAt: "", activatesAt: "" } },
+      );
+      matched = r.matchedCount;
+    } else {
+      const r = await col.updateOne({ _id: new ObjectId(id) }, { $set });
+      matched = r.matchedCount;
+    }
+
+    if (matched === 0) return jsonError("Draw not found.", 404);
 
     return NextResponse.json({ message: "Draw updated successfully." });
   } catch (error) {

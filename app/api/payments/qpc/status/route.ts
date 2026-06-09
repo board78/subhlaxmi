@@ -92,20 +92,35 @@ async function fulfillOrder(userId: string, cart: CartState): Promise<number> {
 
       if (bookedNumbers.length) {
         const bookedAt = new Date();
-        await db.collection("tickets").insertMany(
-          bookedNumbers.map((ticketNumber) => ({
+
+        // Idempotency: only insert tickets that don't exist yet for this user
+        // Prevents duplicates when webhook + status-poll run simultaneously
+        const docsToInsert = [];
+        for (const ticketNumber of bookedNumbers) {
+          const exists = await db.collection("tickets").findOne({
             userId: userObjectId,
-            drawName: item.drawName,
-            prize: `₹${item.pricePerTicket} + GST`,
-            drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
             ticketNumber,
-            status: "draw_pending",
-            bookedAt,
-          })),
-        );
+            drawName: { $exists: true }, // user-visible ticket marker
+          });
+          if (!exists) {
+            docsToInsert.push({
+              userId: userObjectId,
+              drawName: item.drawName,
+              prize: `₹${item.pricePerTicket} + GST`,
+              drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
+              ticketNumber,
+              status: "draw_pending",
+              bookedAt,
+            });
+          }
+        }
+
+        if (docsToInsert.length > 0) {
+          await db.collection("tickets").insertMany(docsToInsert);
+        }
         totalBooked += bookedNumbers.length;
         console.log(
-          `[QPC status] Confirmed ${bookedNumbers.length} tickets for draw ${item.drawId}`,
+          `[QPC status] Confirmed ${bookedNumbers.length} tickets for draw ${item.drawId} (inserted ${docsToInsert.length} new)`,
         );
       }
 

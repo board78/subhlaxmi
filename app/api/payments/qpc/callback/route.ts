@@ -72,23 +72,38 @@ async function fulfillTickets(pending: {
       const bookedNumbers = booking.booked.map((t) => t.number);
 
       if (bookedNumbers.length) {
-        const bookedAt = new Date();
-        await db.collection("tickets").insertMany(
-          bookedNumbers.map((ticketNumber) => ({
-            userId,
-            drawName: item.drawName,
-            prize: `₹${item.pricePerTicket} + GST`,
-            drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
-            ticketNumber,
-            status: "draw_pending",
-            bookedAt,
-          })),
-        );
-        totalBooked += bookedNumbers.length;
-        console.log(
-          `[QPC callback] Confirmed ${bookedNumbers.length} tickets for draw ${item.drawId}`,
-        );
-      }
+          const bookedAt = new Date();
+
+          // Idempotency: only insert tickets that don't exist yet for this user+draw
+          // This prevents duplicate records if both webhook and status-poll run simultaneously
+          const docsToInsert = [];
+          for (const ticketNumber of bookedNumbers) {
+            const exists = await db.collection("tickets").findOne({
+              userId,
+              ticketNumber,
+              drawName: { $exists: true }, // user-visible ticket marker
+            });
+            if (!exists) {
+              docsToInsert.push({
+                userId,
+                drawName: item.drawName,
+                prize: `₹${item.pricePerTicket} + GST`,
+                drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
+                ticketNumber,
+                status: "draw_pending",
+                bookedAt,
+              });
+            }
+          }
+
+          if (docsToInsert.length > 0) {
+            await db.collection("tickets").insertMany(docsToInsert);
+          }
+          totalBooked += bookedNumbers.length;
+          console.log(
+            `[QPC callback] Confirmed ${bookedNumbers.length} tickets for draw ${item.drawId} (inserted ${docsToInsert.length} new)`,
+          );
+        }
 
       if (booking.failed.length) {
         // Tickets that could not be confirmed (already sold to someone else)

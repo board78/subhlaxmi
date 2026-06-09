@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as {
       drawSeriesName?: string;
-      drawDate?: string;
+      startDate?: string;    // YYYY-MM-DD IST
+      startTime?: string;    // HH:MM IST
+      endDate?: string;      // YYYY-MM-DD IST
+      endTime?: string;      // HH:MM IST
       drawTime?: string;
       prizeAmount?: string;
       pricePerTicket?: number;
@@ -73,8 +76,11 @@ export async function POST(request: NextRequest) {
 
     if (!body.drawSeriesName?.trim())
       return jsonError("Draw series name is required.");
-    if (!body.drawDate) return jsonError("Draw date is required.");
-    if (!body.drawTime?.trim()) return jsonError("Draw time is required.");
+    if (!body.startDate || !body.startTime)
+      return jsonError("Start date and time are required.");
+    if (!body.endDate || !body.endTime)
+      return jsonError("End date and time are required.");
+    if (!body.drawTime?.trim()) return jsonError("Draw result time is required.");
     if (typeof body.pricePerTicket !== "number" || body.pricePerTicket <= 0)
       return jsonError("Valid price per ticket is required.");
     if (!body.series?.length)
@@ -99,12 +105,13 @@ export async function POST(request: NextRequest) {
       );
     const drawNumber = (lastInSeries?.drawNumber ?? 0) + 1;
 
-    // Parse draw date as IST midnight (UTC+5:30)
-    // "YYYY-MM-DD" + "T00:00:00+05:30" gives 00:00 IST = 18:30 UTC prev day
-    const activatesAt = new Date(`${body.drawDate}T00:00:00+05:30`);
-    const expiresAt = new Date(
-      activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000,
-    );
+    // Parse IST datetime strings — "YYYY-MM-DD" + "HH:MM" + "+05:30" offset
+    const activatesAt = new Date(`${body.startDate}T${body.startTime}:00+05:30`);
+    const expiresAt   = new Date(`${body.endDate}T${body.endTime}:00+05:30`);
+
+    if (expiresAt <= activatesAt) {
+      return jsonError("End date/time must be after start date/time.");
+    }
 
     const now = new Date();
     const drawDoc: Omit<DrawDoc, "_id"> = {

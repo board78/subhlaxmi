@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/app/components/Navbar";
-import type { SafeUser, TicketBooking } from "@/lib/auth";
+import type { SafeUser } from "@/lib/auth";
+
+type TicketInfo = {
+  id: string;
+  drawName: string;
+  prize: string;
+  drawTime: string;
+  ticketNumber: string;
+  status: "booked" | "draw_pending" | "won" | "lost";
+  bookedAt: string;
+};
 
 export default function MyTicketsPage() {
   const router = useRouter();
   const [user, setUser] = useState<SafeUser | null>(null);
-  const [tickets, setTickets] = useState<TicketBooking[]>([]);
+  const [tickets, setTickets] = useState<TicketInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch profile
   useEffect(() => {
@@ -18,35 +29,57 @@ export default function MyTicketsPage() {
       .then((d) => {
         if (d?.user) {
           setUser(d.user);
+        } else {
+          setLoading(false);
         }
       })
-      .catch(() => {});
+      .catch(() => setLoading(false));
   }, []);
 
   // Fetch tickets
+  const fetchTickets = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    try {
+      const r = await fetch("/api/tickets");
+      if (r.ok) {
+        const data = await r.json() as { tickets: TicketInfo[] };
+        setTickets(data.tickets ?? []);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
-    fetch("/api/tickets")
-      .then(async (r) => (r.ok ? (await r.json() as { tickets: TicketBooking[] }) : null))
-      .then((d) => {
-        if (d?.tickets) {
-          setTickets(d.tickets);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [user]);
+    fetchTickets();
+  }, [user, fetchTickets]);
 
   const handleSignInClick = () => {
-    // Redirect to home page with auth=signin parameter and redirect url
     router.push(`/?auth=signin&next=${encodeURIComponent("/my-tickets")}`);
   };
 
+  const getStatusInfo = (status: TicketInfo["status"]) => {
+    switch (status) {
+      case "won":
+        return { label: "Won 🏆", colorClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" };
+      case "lost":
+        return { label: "Lost", colorClass: "border-zinc-500/30 bg-zinc-500/5 text-zinc-400" };
+      case "booked":
+        return { label: "Confirmed", colorClass: "border-blue-500/30 bg-blue-500/10 text-blue-300" };
+      case "draw_pending":
+      default:
+        return { label: "Draw Pending", colorClass: "border-amber-500/30 bg-amber-500/10 text-amber-300" };
+    }
+  };
+
   return (
-   <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-[#12040c] text-white">
+    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-[#12040c] text-white">
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />
@@ -63,10 +96,34 @@ export default function MyTicketsPage() {
       />
 
       <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/70">Dashboard</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">My Tickets</h1>
-          <p className="mt-1 text-sm text-zinc-400">View and track all your booked lottery tickets.</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/70">Dashboard</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">My Tickets</h1>
+            <p className="mt-1 text-sm text-zinc-400">View and track all your booked lottery tickets.</p>
+          </div>
+          {user && !loading && (
+            <button
+              type="button"
+              onClick={() => fetchTickets(true)}
+              disabled={refreshing}
+              className="mt-4 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
+            >
+              <svg
+                className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          )}
         </div>
 
         {/* Content area */}
@@ -123,72 +180,64 @@ export default function MyTicketsPage() {
           </div>
         ) : (
           /* Tickets grid */
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {tickets.map((ticket) => {
-              // Status formatting
-              let statusLabel = "Pending";
-              let statusColorClass = "border-amber-500/30 bg-amber-500/5 text-amber-300";
+          <>
+            <p className="mb-4 text-sm text-zinc-400">
+              You have <span className="font-semibold text-amber-300">{tickets.length}</span> ticket{tickets.length !== 1 ? "s" : ""} booked.
+            </p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {tickets.map((ticket) => {
+                const { label: statusLabel, colorClass: statusColorClass } = getStatusInfo(ticket.status);
 
-              if (ticket.status === "won") {
-                statusLabel = "Won";
-                statusColorClass = "border-emerald-500/30 bg-emerald-500/5 text-emerald-300";
-              } else if (ticket.status === "lost") {
-                statusLabel = "Lost";
-                statusColorClass = "border-zinc-500/30 bg-zinc-500/5 text-zinc-400";
-              } else if (ticket.status === "booked") {
-                statusLabel = "Booked";
-                statusColorClass = "border-blue-500/30 bg-blue-500/5 text-blue-300";
-              }
+                return (
+                  <div
+                    key={ticket.id}
+                    className="royal-panel relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#1c0d17] to-[#12040c] p-6 shadow-xl transition hover:border-amber-500/20 hover:shadow-amber-900/20"
+                  >
+                    {/* Ticket notch decorators */}
+                    <div className="absolute left-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-r border-white/10 bg-[#12040c]" />
+                    <div className="absolute right-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-l border-white/10 bg-[#12040c]" />
 
-              return (
-                <div
-                  key={ticket.id}
-                  className="royal-panel relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#1c0d17] to-[#12040c] p-6 shadow-xl"
-                >
-                  {/* Vintage ticket card notch style left & right */}
-                  <div className="absolute left-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full bg-[#12040c] border-r border-white/10" />
-                  <div className="absolute right-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full bg-[#12040c] border-l border-white/10" />
-
-                  {/* Top section: draw info */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold text-white">{ticket.drawName}</h3>
-                      <p className="mt-0.5 text-xs text-zinc-400">{ticket.drawTime}</p>
+                    {/* Top section: draw info */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold text-white">{ticket.drawName}</h3>
+                        <p className="mt-0.5 text-xs text-zinc-400">{ticket.drawTime}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColorClass}`}>
+                        {statusLabel}
+                      </span>
                     </div>
-                    <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${statusColorClass}`}>
-                      {statusLabel}
-                    </span>
-                  </div>
 
-                  {/* Mid section: ticket number */}
-                  <div className="my-5 border-t border-dashed border-white/10 pt-5 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500">Ticket Number</p>
-                    <p className="mt-2 font-mono text-xl font-bold tracking-widest text-amber-300">
-                      {ticket.ticketNumber}
-                    </p>
-                  </div>
-
-                  {/* Bottom section: price and date */}
-                  <div className="flex items-end justify-between border-t border-white/5 pt-4 text-xs">
-                    <div>
-                      <p className="text-zinc-500">Prize Pool</p>
-                      <p className="mt-0.5 font-semibold text-zinc-200">{ticket.prize}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-zinc-500">Booked On</p>
-                      <p className="mt-0.5 text-zinc-300">
-                        {new Date(ticket.bookedAt).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                    {/* Mid section: ticket number */}
+                    <div className="my-5 border-t border-dashed border-white/10 pt-5 text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500">Ticket Number</p>
+                      <p className="mt-2 font-mono text-xl font-bold tracking-widest text-amber-300">
+                        {ticket.ticketNumber}
                       </p>
                     </div>
+
+                    {/* Bottom section: prize and booked date */}
+                    <div className="flex items-end justify-between border-t border-white/5 pt-4 text-xs">
+                      <div>
+                        <p className="text-zinc-500">Prize Pool</p>
+                        <p className="mt-0.5 font-semibold text-zinc-200">{ticket.prize}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-zinc-500">Booked On</p>
+                        <p className="mt-0.5 text-zinc-300">
+                          {new Date(ticket.bookedAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </div>

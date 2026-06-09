@@ -1,43 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTicketBooking, getProfile, getSessionUser, jsonError } from "@/lib/auth";
+import { getSessionUser, jsonError } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+
+type UserTicketDoc = {
+  _id: ObjectId;
+  userId: ObjectId;
+  drawName: string;
+  prize: string;
+  drawTime: string;
+  ticketNumber: string;
+  status: "booked" | "draw_pending" | "won" | "lost";
+  bookedAt: Date;
+};
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) return jsonError("Not signed in.", 401);
 
-  const profile = await getProfile(user.id);
-  if (!profile) return jsonError("User profile not found.", 404);
-
-  return NextResponse.json({ tickets: profile.tickets });
-}
-
-export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request);
-    if (!user) return jsonError("Sign in to book tickets.", 401);
+    const db = await getDb();
+    const userObjectId = new ObjectId(user.id);
 
-    const body = (await request.json()) as {
-      drawName?: unknown;
-      prize?: unknown;
-      drawTime?: unknown;
-    };
+    // Query user-visible tickets (inserted by payment callback/status)
+    // These are the tickets with userId, drawName, ticketNumber, prize fields
+    const tickets = await db
+      .collection<UserTicketDoc>("tickets")
+      .find({
+        userId: userObjectId,
+        // Only fetch user-ticket docs (not the draw inventory tickets which have drawId+series fields)
+        ticketNumber: { $exists: true },
+        drawName: { $exists: true },
+      })
+      .sort({ bookedAt: -1 })
+      .limit(100)
+      .toArray();
 
-    if (
-      typeof body.drawName !== "string" ||
-      typeof body.prize !== "string" ||
-      typeof body.drawTime !== "string"
-    ) {
-      return jsonError("Ticket details are required.");
-    }
+    const mapped = tickets.map((t) => ({
+      id: t._id.toString(),
+      drawName: t.drawName,
+      prize: t.prize,
+      drawTime: t.drawTime,
+      ticketNumber: t.ticketNumber,
+      status: t.status,
+      bookedAt: t.bookedAt instanceof Date ? t.bookedAt.toISOString() : t.bookedAt,
+    }));
 
-    const ticket = await createTicketBooking(user.id, {
-      drawName: body.drawName,
-      prize: body.prize,
-      drawTime: body.drawTime,
-    });
-
-    return NextResponse.json({ ticket }, { status: 201 });
+    return NextResponse.json({ tickets: mapped });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Unable to book ticket.");
+    console.error("[/api/tickets GET] Error:", error);
+    return jsonError("Unable to fetch tickets.", 500);
   }
 }
