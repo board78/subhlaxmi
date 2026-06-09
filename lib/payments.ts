@@ -13,6 +13,8 @@ export type PendingPaymentDoc = {
   createdAt: Date;
   updatedAt: Date;
   processedAt?: Date;
+  appliedReferralCode?: string;
+  usedDiscount?: boolean;
 };
 
 export async function upsertPendingPayment(
@@ -51,8 +53,30 @@ export async function markPaymentProcessed(
   status: PendingPaymentDoc["status"],
 ) {
   const db = await getDb();
-  await db.collection<PendingPaymentDoc>("payments").updateOne(
-    { provider, orderId },
+  
+  // Update status atomically. If it's already the target status, it returns null.
+  const result = await db.collection<PendingPaymentDoc>("payments").findOneAndUpdate(
+    { provider, orderId, status: { $ne: status } },
     { $set: { status, processedAt: new Date(), updatedAt: new Date() } },
+    { returnDocument: "after" }
   );
+
+  // If it was already processed, result is null.
+  const payment = result;
+
+  // If successfully processed to "processed" (paid) status, handle referral rewards
+  if (payment && status === "processed") {
+    if (payment.usedDiscount) {
+      await db.collection("users").updateOne(
+        { _id: payment.userId },
+        { $inc: { availableDiscounts: -1 } }
+      );
+    }
+    if (payment.appliedReferralCode) {
+      await db.collection("users").updateOne(
+        { referralCode: payment.appliedReferralCode },
+        { $inc: { availableDiscounts: 1 } }
+      );
+    }
+  }
 }

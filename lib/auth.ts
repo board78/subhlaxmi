@@ -24,6 +24,8 @@ export type SafeUser = {
   role: "user" | "admin";
   settings: UserSettings;
   image?: string;
+  referralCode?: string;
+  availableDiscounts?: number;
   createdAt: string;
 };
 
@@ -47,6 +49,8 @@ type UserDoc = {
   role: "user" | "admin";
   settings: UserSettings;
   image?: string;
+  referralCode?: string;
+  availableDiscounts?: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -267,6 +271,8 @@ export async function completeRegistration({
     bookingAlerts: true,
   };
 
+  const { generateReferralCode } = await import("./utils");
+
   const newUser: OptionalUnlessRequiredId<UserDoc> = {
     name,
     email,
@@ -274,6 +280,8 @@ export async function completeRegistration({
     emailVerifiedAt: now,
     role: "user",
     settings,
+    referralCode: generateReferralCode(),
+    availableDiscounts: 0,
     createdAt: now,
     updatedAt: now,
   };
@@ -290,6 +298,8 @@ export async function completeRegistration({
     email,
     role: "user",
     settings,
+    referralCode: newUser.referralCode,
+    availableDiscounts: newUser.availableDiscounts,
     createdAt: now.toISOString(),
   };
 }
@@ -357,8 +367,17 @@ export async function getSessionUser(request: NextRequest): Promise<SafeUser | n
 export async function getProfile(userId: string) {
   const db = await getDb();
   const userObjectId = new ObjectId(userId);
-  const user = await db.collection<UserDoc>("users").findOne({ _id: userObjectId });
+  let user = await db.collection<UserDoc>("users").findOne({ _id: userObjectId });
   if (!user) return null;
+
+  // Lazy generate referral code for older users who don't have one
+  if (!user.referralCode) {
+    const { generateReferralCode } = await import("./utils");
+    const referralCode = generateReferralCode();
+    await db.collection<UserDoc>("users").updateOne({ _id: userObjectId }, { $set: { referralCode, availableDiscounts: 0 } });
+    user.referralCode = referralCode;
+    user.availableDiscounts = 0;
+  }
 
   const tickets = await db
     .collection<TicketDoc>("tickets")
@@ -449,6 +468,8 @@ function toSafeUser(doc: UserDoc): SafeUser {
     role: doc.role ?? "user",
     settings: doc.settings ?? { language: "en", marketingEmails: false, bookingAlerts: true },
     image: doc.image,
+    referralCode: doc.referralCode,
+    availableDiscounts: doc.availableDiscounts ?? 0,
     createdAt: doc.createdAt.toISOString(),
   };
 }

@@ -13,6 +13,7 @@ import {
 } from "./cartStorage";
 import { Navbar } from "@/app/components/Navbar";
 import type { SafeUser } from "@/lib/auth";
+import { useSearchParams } from "next/navigation";
 
 const TICKET_PREVIEW = 12;
 const EMPTY_CART: CartState = { items: [], updatedAt: new Date(0).toISOString() };
@@ -29,6 +30,20 @@ export default function CartPage() {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [error, setError] = useState("");
   const [expandedItem, setExpandedItem] = useState<CartTicketItem | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const searchParams = useSearchParams();
+
+  // Auto-fill referral code from URL or sessionStorage
+  useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    if (urlRef) {
+      setReferralCode(urlRef);
+      sessionStorage.setItem("subhlaxmi_ref", urlRef);
+    } else {
+      const storedRef = sessionStorage.getItem("subhlaxmi_ref");
+      if (storedRef) setReferralCode(storedRef);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setCart(getCart());
@@ -83,11 +98,15 @@ export default function CartPage() {
 
   const totals = useMemo(() => {
     const subtotal = cart.items.reduce((sum, item) => sum + item.ticketNumbers.length * item.pricePerTicket, 0);
-    const gst = Math.round(subtotal * 0.18 * 100) / 100;
-    const grandTotal = Math.round((subtotal + gst) * 100) / 100;
+    const hasDiscount = Boolean(user && user.availableDiscounts && user.availableDiscounts > 0);
+    const discountAmount = hasDiscount ? Math.round(subtotal * 0.1 * 100) / 100 : 0;
+    const discountedSubtotal = subtotal - discountAmount;
+    
+    const gst = Math.round(discountedSubtotal * 0.18 * 100) / 100;
+    const grandTotal = Math.round((discountedSubtotal + gst) * 100) / 100;
     const totalTickets = cart.items.reduce((sum, item) => sum + item.ticketNumbers.length, 0);
-    return { subtotal, gst, grandTotal, totalTickets };
-  }, [cart.items]);
+    return { subtotal, discountAmount, gst, grandTotal, totalTickets, hasDiscount };
+  }, [cart.items, user]);
 
   const startCheckout = async () => {
     setError("");
@@ -100,7 +119,7 @@ export default function CartPage() {
         res = await fetch("/api/payments/qpc/create-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart }),
+          body: JSON.stringify({ cart, referralCode }),
           signal: AbortSignal.timeout(60_000),
         });
       } catch {
@@ -294,11 +313,31 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span className="sl-cart-value text-zinc-200">₹{formatMoney(totals.subtotal)}</span>
               </div>
+              {totals.hasDiscount && (
+                <div className="sl-cart-row flex justify-between text-amber-400">
+                  <span>Referral Discount (10%)</span>
+                  <span className="sl-cart-value">-₹{formatMoney(totals.discountAmount)}</span>
+                </div>
+              )}
               <div className="sl-cart-row flex justify-between text-zinc-400">
                 <span>GST (18%)</span>
                 <span className="sl-cart-value text-zinc-200">₹{formatMoney(totals.gst)}</span>
               </div>
-              <div className="sl-cart-total flex justify-between border-t border-white/10 pt-3 text-base font-bold text-amber-300">
+              
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Referral Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-amber-400/50 focus:outline-none"
+                />
+              </div>
+
+              <div className="sl-cart-total flex justify-between border-t border-white/10 pt-3 text-base font-bold text-amber-300 mt-4">
                 <span>Total</span>
                 <span>₹{formatMoney(totals.grandTotal)}</span>
               </div>

@@ -17,6 +17,16 @@ export function formatSampleTicket(seed: string): string {
   return `sl-${series}-${n}`;
 }
 
+/** Generates a random alphanumeric referral code */
+export function generateReferralCode(length = 8): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 // ─── Draw / countdown helpers ───────────────────────────────────────────────
 
 const DRAW_HOURS = [13, 18, 21];

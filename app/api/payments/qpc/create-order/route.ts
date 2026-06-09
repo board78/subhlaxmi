@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser(request);
     if (!user) return jsonError("Sign in to checkout.", 401);
 
-    const body = (await request.json()) as { cart?: CartState };
+    const body = (await request.json()) as { cart?: CartState; referralCode?: string };
     const cart = body.cart;
     if (!cart?.items?.length) return jsonError("Cart is empty.");
 
@@ -44,8 +44,33 @@ export async function POST(request: NextRequest) {
       (sum, item) => sum + item.ticketNumbers.length * item.pricePerTicket,
       0,
     );
-    const gst = Math.round(subtotal * 0.18 * 100) / 100;
-    const orderAmount = Math.round((subtotal + gst) * 100) / 100;
+
+    const db = await getDb();
+    const userDoc = await db
+      .collection("users")
+      .findOne({ _id: new ObjectId(user.id) });
+
+    let appliedReferralCode = undefined;
+    if (body.referralCode?.trim()) {
+      const refCode = body.referralCode.trim().toUpperCase();
+      // Ensure they don't use their own code
+      if (userDoc?.referralCode === refCode) {
+        return jsonError("You cannot use your own referral code.");
+      }
+      // Ensure the code belongs to a valid user
+      const referrer = await db.collection("users").findOne({ referralCode: refCode });
+      if (!referrer) {
+        return jsonError("Invalid referral code.");
+      }
+      appliedReferralCode = refCode;
+    }
+
+    const hasDiscount = Boolean(userDoc?.availableDiscounts && userDoc.availableDiscounts > 0);
+    const discountAmount = hasDiscount ? Math.round(subtotal * 0.1 * 100) / 100 : 0;
+    const discountedSubtotal = subtotal - discountAmount;
+
+    const gst = Math.round(discountedSubtotal * 0.18 * 100) / 100;
+    const orderAmount = Math.round((discountedSubtotal + gst) * 100) / 100;
     if (orderAmount <= 0) return jsonError("Invalid cart total.");
 
     if (orderAmount < 100) {
@@ -91,10 +116,6 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Step 2: Load payer info ───────────────────────────────────────────────
-    const db = await getDb();
-    const userDoc = await db
-      .collection("users")
-      .findOne({ _id: new ObjectId(user.id) });
     const payer = {
       name: (userDoc?.name as string | null) ?? user.name,
       email: (userDoc?.email as string | null) ?? user.email,
@@ -167,6 +188,8 @@ export async function POST(request: NextRequest) {
         userId: new ObjectId(user.id),
         createdAt: new Date(),
         updatedAt: new Date(),
+        usedDiscount: hasDiscount,
+        appliedReferralCode,
       });
     } catch (dbErr) {
       console.error("[QPC create-order] FATAL — MongoDB save failed:", dbErr);
