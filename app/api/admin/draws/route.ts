@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         { drawSeriesName },
         { sort: { drawNumber: -1 }, projection: { drawNumber: 1 } },
       );
-    const drawNumber = (lastInSeries?.drawNumber ?? 0) + 1;
+    const drawNumber = lastInSeries?.drawNumber ? lastInSeries.drawNumber + 1 : 101;
 
     // Parse IST datetime strings — "YYYY-MM-DD" + "HH:MM" + "+05:30" offset
     const activatesAt = new Date(`${body.startDate}T${body.startTime}:00+05:30`);

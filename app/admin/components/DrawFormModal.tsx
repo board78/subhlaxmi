@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDrawNumber } from "@/lib/utils";
 
 export type DrawFormData = {
   drawSeriesName: string;
@@ -141,6 +142,8 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
   const [form, setForm] = useState<DrawFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // "7days" = auto-compute end from start+7d; "custom" = manual end date
+  const [durationMode, setDurationMode] = useState<"7days" | "custom">("7days");
 
   useEffect(() => {
     if (!open) return;
@@ -150,6 +153,11 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
       const rawStatus = editDraw.status as DrawFormData["statusOverride"];
       const knownStatuses: DrawFormData["statusOverride"][] = ["upcoming", "active", "closed", "drawn"];
       const statusOverride = knownStatuses.includes(rawStatus) ? rawStatus : "auto";
+      // Detect if the existing draw is 7 days exactly
+      const startMs = new Date(editDraw.activatesAt).getTime();
+      const endMs   = new Date(editDraw.expiresAt).getTime();
+      const diffDays = Math.round((endMs - startMs) / (1000 * 60 * 60 * 24));
+      setDurationMode(diffDays === 7 ? "7days" : "custom");
       setForm({
         drawSeriesName: editDraw.drawSeriesName ?? editDraw.name,
         drawTime: editDraw.drawTime,
@@ -167,6 +175,7 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
       });
     } else {
       setForm(EMPTY_FORM);
+      setDurationMode("7days");
     }
     setError("");
   }, [open, editDraw]);
@@ -174,8 +183,18 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
   const set = (key: keyof DrawFormData, value: unknown) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // When durationMode is "7days", derive endDate/endTime from startDate+7 days
+  const effectiveEndDate = durationMode === "7days" && form.startDate
+    ? (() => {
+        const d = new Date(`${form.startDate}T${form.startTime}:00+05:30`);
+        d.setDate(d.getDate() + 7);
+        return d.toISOString().slice(0, 10);
+      })()
+    : form.endDate;
+  const effectiveEndTime = durationMode === "7days" ? form.startTime : form.endTime;
+
   const previewActivatesAt = form.startDate && form.startTime ? toISTDate(form.startDate, form.startTime) : null;
-  const previewExpiresAt   = form.endDate && form.endTime     ? toISTDate(form.endDate, form.endTime)     : null;
+  const previewExpiresAt   = effectiveEndDate && effectiveEndTime ? toISTDate(effectiveEndDate, effectiveEndTime) : null;
 
   const durationMs = previewActivatesAt && previewExpiresAt
     ? previewExpiresAt.getTime() - previewActivatesAt.getTime()
@@ -206,7 +225,9 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.startDate || !form.startTime) { setError("Start date and time are required."); return; }
-    if (!form.endDate   || !form.endTime)   { setError("End date and time are required.");   return; }
+    if (durationMode === "custom" && (!form.endDate || !form.endTime)) {
+      setError("End date and time are required."); return;
+    }
     if (previewActivatesAt && previewExpiresAt && previewExpiresAt <= previewActivatesAt) {
       setError("End date/time must be after start date/time."); return;
     }
@@ -223,10 +244,10 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
       prizeAmount: form.prizeAmount,
       startDate: form.startDate,
       startTime: form.startTime,
-      endDate: form.endDate,
-      endTime: form.endTime,
+      endDate: effectiveEndDate,
+      endTime: effectiveEndTime,
     };
-    if (editDraw && form.statusOverride !== "auto") payload.status = form.statusOverride;
+    if (form.statusOverride !== "auto") payload.status = form.statusOverride;
     try {
       const r = await fetch(
         editDraw ? `/api/admin/draws/${editDraw.id}` : "/api/admin/draws",
@@ -247,7 +268,7 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
 
   const previewName = form.drawSeriesName.trim()
     ? editDraw?.drawNumber
-      ? `${form.drawSeriesName.trim()} #${editDraw.drawNumber}`
+      ? `${form.drawSeriesName.trim()} ${formatDrawNumber(editDraw.drawNumber)}`
       : `${form.drawSeriesName.trim()} #N`
     : "";
 
@@ -269,8 +290,13 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                   <IconStar />
                 </div>
                 <div>
-                  <h2 className="text-[14px] font-bold text-white tracking-tight">
+                  <h2 className="text-[14px] font-bold text-white tracking-tight flex items-center gap-2">
                     {editDraw ? "Edit Draw" : "Create New Draw"}
+                    {editDraw?.drawNumber != null && (
+                      <span className="bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30 px-2 py-0.5 rounded-full text-xs font-bold ml-2">
+                        {formatDrawNumber(editDraw.drawNumber)}
+                      </span>
+                    )}
                   </h2>
                   <p className="text-[11px] text-zinc-500 mt-0.5">
                     {editDraw ? "Update configuration and schedule" : "Configure draw details and schedule"}
@@ -335,13 +361,37 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                     </div>
                   </div>
 
-                  {/* ── Start Schedule ────────────────────── */}
-                  <div className="space-y-3">
+                  {/* ── Schedule ──────────────────────────── */}
+                  <div className="space-y-4">
                     <SectionHeader
                       icon={<IconPlay />}
-                      label="Activation Schedule — Draw goes live"
+                      label="Schedule"
                       accent="bg-emerald-500/[0.08] text-emerald-400 border border-emerald-500/15 rounded-lg"
                     />
+
+                    {/* Duration Mode Toggle */}
+                    <div>
+                      <p className={`${lbl} mb-2`}>Duration</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["7days", "custom"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setDurationMode(mode)}
+                            className={`flex flex-col items-center rounded-xl border py-2.5 px-3 text-center transition-all duration-150 ${
+                              durationMode === mode
+                                ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
+                                : "border-white/[0.07] text-zinc-500 bg-white/[0.02] hover:border-white/15 hover:text-zinc-300"
+                            }`}
+                          >
+                            <span className="text-[12px] font-bold">{mode === "7days" ? "7 Days" : "Custom"}</span>
+                            <span className="text-[9px] mt-0.5 opacity-60">{mode === "7days" ? "Auto end after 7 days" : "Set custom end date"}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Start date+time */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={lbl}>
@@ -370,51 +420,61 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                         />
                       </div>
                     </div>
+
                     {previewActivatesAt && (
                       <p className="text-[11px] text-emerald-400/70 pl-1">
                         Goes active: <span className="font-semibold text-emerald-300">{fmtDT(previewActivatesAt)}</span>
                       </p>
                     )}
-                  </div>
 
-                  {/* ── End Schedule ──────────────────────── */}
-                  <div className="space-y-3">
-                    <SectionHeader
-                      icon={<IconStop />}
-                      label="Closing Schedule — Draw stops accepting"
-                      accent="bg-rose-500/[0.08] text-rose-400 border border-rose-500/15 rounded-lg"
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={lbl}>
-                          <span className="flex items-center gap-1.5"><IconCalendar /> End Date <span className="text-amber-500">*</span></span>
-                        </label>
-                        <input
-                          type="date"
-                          required
-                          value={form.endDate}
-                          onChange={(e) => set("endDate", e.target.value)}
-                          className={inp}
-                          style={{ colorScheme: "dark" }}
+                    {/* Custom end date (only shown in custom mode) */}
+                    {durationMode === "custom" && (
+                      <div className="space-y-3">
+                        <SectionHeader
+                          icon={<IconStop />}
+                          label="Closing Schedule — Draw stops accepting"
+                          accent="bg-rose-500/[0.08] text-rose-400 border border-rose-500/15 rounded-lg"
                         />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className={lbl}>
+                              <span className="flex items-center gap-1.5"><IconCalendar /> End Date <span className="text-amber-500">*</span></span>
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={form.endDate}
+                              onChange={(e) => set("endDate", e.target.value)}
+                              className={inp}
+                              style={{ colorScheme: "dark" }}
+                            />
+                          </div>
+                          <div>
+                            <label className={lbl}>
+                              <span className="flex items-center gap-1.5"><IconClock /> End Time (IST) <span className="text-amber-500">*</span></span>
+                            </label>
+                            <input
+                              type="time"
+                              required
+                              value={form.endTime}
+                              onChange={(e) => set("endTime", e.target.value)}
+                              className={inp}
+                              style={{ colorScheme: "dark" }}
+                            />
+                          </div>
+                        </div>
+                        {previewExpiresAt && (
+                          <p className="text-[11px] text-rose-400/70 pl-1">
+                            Closes: <span className="font-semibold text-rose-300">{fmtDT(previewExpiresAt)}</span>
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <label className={lbl}>
-                          <span className="flex items-center gap-1.5"><IconClock /> End Time (IST) <span className="text-amber-500">*</span></span>
-                        </label>
-                        <input
-                          type="time"
-                          required
-                          value={form.endTime}
-                          onChange={(e) => set("endTime", e.target.value)}
-                          className={inp}
-                          style={{ colorScheme: "dark" }}
-                        />
-                      </div>
-                    </div>
-                    {previewExpiresAt && (
+                    )}
+
+                    {/* 7-day auto preview */}
+                    {durationMode === "7days" && previewActivatesAt && (
                       <p className="text-[11px] text-rose-400/70 pl-1">
-                        Closes: <span className="font-semibold text-rose-300">{fmtDT(previewExpiresAt)}</span>
+                        Auto closes: <span className="font-semibold text-rose-300">{fmtDT(previewExpiresAt)}</span>
                       </p>
                     )}
                   </div>
@@ -476,10 +536,9 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                     </p>
                   </div>
 
-                  {/* ── Status Override (Edit only) ───────── */}
-                  {editDraw && (
-                    <div>
-                      <label className={lbl}>
+                  {/* ── Status Override ───────── */}
+                  <div>
+                    <label className={lbl}>
                         Status Override
                         <span className="ml-1.5 normal-case tracking-normal text-zinc-600 font-normal text-[10px]">— force a specific state</span>
                       </label>
@@ -522,7 +581,6 @@ export function DrawFormModal({ open, editDraw, onClose, onSaved }: Props) {
                           : "Status is automatically managed by start and end schedule."}
                       </p>
                     </div>
-                  )}
 
                   {/* Divider */}
                   <div className="border-t border-white/[0.05]" />

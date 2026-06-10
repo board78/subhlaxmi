@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { DrawSummaryPublic } from "@/lib/draws";
+import { formatDrawNumber } from "@/lib/utils";
 
 function formatPrize(raw?: string, language: "en" | "hi" = "en") {
   if (!raw?.trim()) return null;
@@ -109,7 +110,29 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
       }}
     >
       {/* Top Header Row with Status Badge */}
-      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 6 }}>
+        {/* Draw Number Badge */}
+        {draw.drawNumber != null && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 2,
+              background: "rgba(255, 215, 0, 0.1)",
+              color: "#FFD700",
+              border: "1px solid rgba(255, 215, 0, 0.25)",
+              borderRadius: 999,
+              padding: "3px 9px",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {formatDrawNumber(draw.drawNumber)}
+          </span>
+        )}
         <span
           style={{
             display: "inline-flex",
@@ -119,7 +142,7 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
             color: currentStatus.color,
             borderRadius: 999,
             padding: "3px 9px",
-            fontSize: 9, // Smaller font size
+            fontSize: 9,
             fontWeight: 700,
             letterSpacing: "0.04em",
             textTransform: "uppercase",
@@ -144,11 +167,11 @@ export function DrawTicketCard({ draw, index, language, buyLabel, onBuy }: Props
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          {draw.name.replace(/\b\w/g, c => c.toUpperCase())}
+          {(draw.drawSeriesName || draw.name.replace(/\s*#\d+$/, "")).replace(/\b\w/g, c => c.toUpperCase())}
         </h3>
         <p
           style={{
-            fontSize: 11, // Scale down tagline
+            fontSize: 11,
             color: "rgba(255, 255, 255, 0.6)",
             margin: "3px 0 0",
             fontFamily: "'DM Sans', sans-serif",

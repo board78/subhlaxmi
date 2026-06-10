@@ -111,3 +111,9 @@ export function getPublicAppOrigin(request?: { nextUrl: { origin: string }; head
 
   return base;
 }
+
+/** Formats a draw number (e.g. 101 -> DRAW 101) */
+export function formatDrawNumber(drawNumber: number | null | undefined): string {
+  if (drawNumber == null) return "";
+  return `DRAW ${drawNumber}`;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDrawNumber } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DrawFormModal, type DrawForEdit } from "./DrawFormModal";
 import { AdminTicketView } from "./AdminTicketView";
@@ -187,8 +188,8 @@ function DrawCard({
               {draw.name}
             </p>
             {draw.drawNumber != null && (
-              <span className="rounded-md bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                #{draw.drawNumber}
+              <span className="bg-[#D11A3A]/20 text-[#D11A3A] border border-[#D11A3A]/30 px-2 py-0.5 rounded-full text-xs font-bold tracking-widest ml-3">
+                {formatDrawNumber(draw.drawNumber)}
               </span>
             )}
           </div>

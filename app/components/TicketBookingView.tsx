@@ -53,6 +53,35 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
   const selectedCount = selected.size;
   const grandTotal = Math.round(selectedCount * totalPerTicket * 100) / 100;
 
+  const activeSeriesRange = useMemo(() => {
+    const totalTicketsConfig = draw.ticketRangeEnd - draw.ticketRangeStart + 1;
+    const numSeries = draw.series.length;
+    if (numSeries === 0) return { start: draw.ticketRangeStart, end: draw.ticketRangeEnd };
+
+    const basePerSeries = Math.floor(totalTicketsConfig / numSeries);
+    let remainder = totalTicketsConfig % numSeries;
+
+    let currentStart = draw.ticketRangeStart;
+    let activeStart = draw.ticketRangeStart;
+    let activeEnd = draw.ticketRangeEnd;
+
+    for (let i = 0; i < draw.series.length; i++) {
+      const s = draw.series[i];
+      let seriesCount = basePerSeries + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+
+      if (seriesCount > 0) {
+        const seriesEnd = currentStart + seriesCount - 1;
+        if (s === activeSeries) {
+          activeStart = currentStart;
+          activeEnd = seriesEnd;
+        }
+        currentStart = seriesEnd + 1;
+      }
+    }
+    return { start: activeStart, end: activeEnd };
+  }, [draw, activeSeries]);
+
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 350);
     return () => clearTimeout(t);
@@ -308,8 +337,8 @@ export function TicketBookingView({ draw, user, onNeedAuth }: TicketBookingViewP
                 Series: <span className="text-amber-200">{activeSeries}</span>
                 {" · "}Range:{" "}
                 <span className="text-zinc-200">
-                  {draw.ticketPrefix}-{activeSeries}-{draw.ticketRangeStart} to{" "}
-                  {draw.ticketPrefix}-{activeSeries}-{draw.ticketRangeEnd}
+                  {draw.ticketPrefix}-{activeSeries}-{activeSeriesRange.start} to{" "}
+                  {draw.ticketPrefix}-{activeSeries}-{activeSeriesRange.end}
                 </span>
                 {" · "}Total:{" "}
                 <span className="text-zinc-200">{ticketData.stats.total.toLocaleString("en-IN")}</span>

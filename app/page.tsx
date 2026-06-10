@@ -20,6 +20,7 @@ import { Footer } from "./components/Footer";
 import { FaTrophy } from "react-icons/fa6";
 
 import { siteCopy, type Language } from "./siteCopy";
+import { formatDrawNumber } from "@/lib/utils";
 import type { DrawSummaryPublic } from "@/lib/draws";
 import type { LiveResult } from "@/lib/types";
 
@@ -450,7 +451,14 @@ export default function Home() {
                         <motion.div key={result.id} whileHover={{ x: 3 }} transition={{ duration: 0.16 }}
                           className="sl-live-result-row flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-2.5 sm:py-3">
                           <div className="min-w-0 flex-1">
-                            <span className="sl-live-result-label block truncate text-sm font-medium text-zinc-200 capitalize">{result.drawName.replace(/\b\w/g, c => c.toUpperCase())}</span>
+                            <div className="flex items-center gap-2">
+                              {result.drawNumber != null && (
+                                <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/25 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider">
+                                  {formatDrawNumber(result.drawNumber)}
+                                </span>
+                              )}
+                              <span className="sl-live-result-label block truncate text-sm font-medium text-zinc-200 capitalize">{result.drawName.replace(/\b\w/g, c => c.toUpperCase())}</span>
+                            </div>
                             {result.winnerName && <span className="block truncate text-[10px] text-zinc-500">Winner: {result.winnerName}</span>}
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-1">

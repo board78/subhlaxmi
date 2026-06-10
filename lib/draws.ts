@@ -721,14 +721,30 @@ export async function generateTicketsForDraw(
 
   let inserted = 0;
 
-  for (const s of series) {
-    let batchStart = ticketRangeStart;
-    while (batchStart <= ticketRangeEnd) {
-      const batchEnd = Math.min(batchStart + BATCH - 1, ticketRangeEnd);
+  const totalTicketsConfig = ticketRangeEnd - ticketRangeStart + 1;
+  const numSeries = series.length;
+  const basePerSeries = Math.floor(totalTicketsConfig / numSeries);
+  let remainder = totalTicketsConfig % numSeries;
+
+  let currentStart = ticketRangeStart;
+
+  for (let i = 0; i < series.length; i++) {
+    const s = series[i];
+    let seriesCount = basePerSeries + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+
+    if (seriesCount <= 0) continue;
+
+    const seriesEnd = currentStart + seriesCount - 1;
+
+    let batchStart = currentStart;
+    while (batchStart <= seriesEnd) {
+      const batchEnd = Math.min(batchStart + BATCH - 1, seriesEnd);
       const docs: Omit<TicketDoc, "_id">[] = [];
 
       for (let n = batchStart; n <= batchEnd; n++) {
-        const isLpSpecial = n >= ticketRangeEnd - 99;
+        // We consider the last 100 tickets of EACH series as LP special (or less if seriesCount < 100)
+        const isLpSpecial = n > seriesEnd - 100;
         docs.push({
           drawId: oid,
           series: s,
@@ -762,7 +778,9 @@ export async function generateTicketsForDraw(
       batchStart = batchEnd + 1;
     }
 
-    if (rangeSize >= 100_000) break;
+    currentStart = seriesEnd + 1;
+
+    if (inserted >= 100_000) break;
   }
 
   return inserted;

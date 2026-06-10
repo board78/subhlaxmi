@@ -27,6 +27,20 @@ export async function GET() {
             preserveNullAndEmptyArrays: true
           }
         },
+        {
+          $lookup: {
+            from: "draws",
+            localField: "drawId",
+            foreignField: "_id",
+            as: "draw"
+          }
+        },
+        {
+          $unwind: {
+            path: "$draw",
+            preserveNullAndEmptyArrays: true
+          }
+        },
         { $sort: { declaredAt: -1 } },
         { $limit: 20 }
       ])
@@ -36,6 +50,7 @@ export async function GET() {
       results: results.map((r) => ({
         id: r._id.toString(),
         drawName: r.drawName as string,
+        drawNumber: (r.draw?.drawNumber as number | undefined) ?? undefined,
         winningTicket: r.winningTicket as string,
         prize: r.prize as string,
         winnerName: (r.winnerName as string | null) ?? null,

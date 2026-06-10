@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaTrophy } from "react-icons/fa6";
+import { formatDrawNumber } from "@/lib/utils";
 
 type Draw = {
   id: string;
   name: string;
+  drawNumber?: number;
   status: string;
   prizeAmount?: string;
 };
@@ -15,6 +17,7 @@ type Result = {
   id: string;
   drawId: string;
   drawName: string;
+  drawNumber?: number;
   winningTicket: string;
   prize: string;
   winnerName: string | null;
@@ -256,13 +259,14 @@ function DeclareModal({
       <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
         {error && <ErrorBanner msg={error} />}
         
-        <div>
+                  {/* Select Draw dropdown */}
+          <div>
           <label className={lbl}>Select Draw <span className="text-amber-400">*</span></label>
           <select value={drawId} onChange={(e) => setDrawId(e.target.value)} required className={inp}>
             <option value="" className="bg-[#170d14]">— Select a draw —</option>
             {draws.map((d) => (
               <option key={d.id} value={d.id} className="bg-[#170d14]">
-                {d.name} ({d.status})
+                {d.drawNumber != null ? `${formatDrawNumber(d.drawNumber)} — ` : ""}{d.name} ({d.status})
               </option>
             ))}
           </select>
@@ -617,6 +621,11 @@ export function ResultsManagement() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-bold text-zinc-100">{result.drawName}</p>
+                      {result.drawNumber != null && (
+                        <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full text-xs font-medium mr-2">
+                          {formatDrawNumber(result.drawNumber)}
+                        </span>
+                      )}
                       <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
                         {result.winningTicket}
                       </span>

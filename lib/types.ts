@@ -5,6 +5,7 @@
 export type LiveResult = {
   id: string;
   drawName: string;
+  drawNumber?: number;
   winningTicket: string;
   prize: string;
   winnerName: string | null;
