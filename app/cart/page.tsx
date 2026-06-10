@@ -22,7 +22,9 @@ function formatMoney(amount: number) {
   return amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function CartPage() {
+import { Suspense } from "react";
+
+function CartContent() {
   const router = useRouter();
   const [cart, setCart] = useState<CartState>(EMPTY_CART);
   const [cartReady, setCartReady] = useState(false);
@@ -436,5 +438,17 @@ export default function CartPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
+      </div>
+    }>
+      <CartContent />
+    </Suspense>
   );
 }
