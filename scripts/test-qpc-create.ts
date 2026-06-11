@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { getQpcMerchantId, getQpcMerchantKey, qpcPayinSign } from "../lib/qpc";
+import { getQpcMerchantId, getQpcMerchantKey, qpcPayinSign } from "../src/server/services/qpc.service";
 
 dotenv.config();
 
