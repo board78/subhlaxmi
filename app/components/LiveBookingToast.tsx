@@ -4,25 +4,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
-type Booking = {
-  name: string;
-  city: string;
-  tickets: number;
-  drawName: string;
-};
-
-const DUMMY_BOOKINGS: Booking[] = [
-  { name: "Ramesh Kumar", city: "Delhi", tickets: 5, drawName: "kuber ratna" },
-  { name: "Priya Sharma", city: "Mumbai", tickets: 3, drawName: "shri samridhi" },
-  { name: "Amit Patel", city: "Jaipur", tickets: 10, drawName: "vaibhav laxmi" },
-  { name: "Sneha Joshi", city: "Surat", tickets: 4, drawName: "dhan laxmi special" },
-  { name: "Vikram Singh", city: "Lucknow", tickets: 6, drawName: "riddhi siddhi" },
-  { name: "Rajesh Verma", city: "Patna", tickets: 8, drawName: "jai mata di draw" },
-  { name: "Pooja Hegde", city: "Bengaluru", tickets: 2, drawName: "kuber ratna" },
-  { name: "Sunita Yadav", city: "Indore", tickets: 5, drawName: "shri samridhi" },
-  { name: "Sanjay Shah", city: "Ahmedabad", tickets: 7, drawName: "sone ki baarish" },
-  { name: "Deepa Bisht", city: "Dehradun", tickets: 3, drawName: "vaibhav laxmi" },
-];
+import { DUMMY_BOOKINGS } from "../data/toastData";
 
 export function LiveBookingToast() {
   useEffect(() => {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 
-export type AdminSection = "overview" | "users" | "draws" | "results" | "blog" | "carousel" | "testimonials";
+export type AdminSection = "overview" | "users" | "draws" | "results" | "imageResults" | "blog" | "carousel" | "testimonials";
 
 const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
   {
@@ -41,10 +41,22 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode }[] = 
   },
   {
     id: "results",
-    label: "Results",
+    label: "Draw Results",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+      </svg>
+    ),
+  },
+  {
+    id: "imageResults",
+    label: "Image Results",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
       </svg>
     ),
   },

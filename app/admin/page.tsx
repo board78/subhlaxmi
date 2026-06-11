@@ -12,6 +12,7 @@ import { ResultsManagement } from "./components/ResultsManagement";
 import { BlogManagement } from "./components/BlogManagement";
 import { CarouselManagement } from "./components/CarouselManagement";
 import { TestimonialManagement } from "./components/TestimonialManagement";
+import { ImageResultsManagement } from "./components/ImageResultsManagement";
 
 type AuthUser = { name: string; email: string; role: string };
 
@@ -33,6 +34,7 @@ export default function AdminPage() {
     users: <UserManagement />,
     draws: <DrawManagement />,
     results: <ResultsManagement />,
+    imageResults: <ImageResultsManagement />,
     blog: <BlogManagement />,
     carousel: <CarouselManagement />,
     testimonials: <TestimonialManagement />,

@@ -22,29 +22,37 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
     const userObjectId = new ObjectId(user.id);
 
-    // Query user-visible tickets (inserted by payment callback/status)
-    // These are the tickets with userId, drawName, ticketNumber, prize fields
-    const tickets = await db
-      .collection<UserTicketDoc>("tickets")
+    // Query the payments collection where the user's purchased tickets are stored
+    const payments = await db
+      .collection("payments")
       .find({
         userId: userObjectId,
-        // Only fetch user-ticket docs (not the draw inventory tickets which have drawId+series fields)
-        ticketNumber: { $exists: true },
-        drawName: { $exists: true },
+        status: { $ne: "failed" },
       })
-      .sort({ bookedAt: -1 })
-      .limit(100)
+      .sort({ createdAt: -1 })
       .toArray();
 
-    const mapped = tickets.map((t) => ({
-      id: t._id.toString(),
-      drawName: t.drawName,
-      prize: t.prize,
-      drawTime: t.drawTime,
-      ticketNumber: t.ticketNumber,
-      status: t.status,
-      bookedAt: t.bookedAt instanceof Date ? t.bookedAt.toISOString() : t.bookedAt,
-    }));
+    const mapped: any[] = [];
+
+    for (const payment of payments) {
+      if (!payment.cart || !payment.cart.items) continue;
+
+      for (const item of payment.cart.items) {
+        if (!item.ticketNumbers) continue;
+        
+        for (const ticketNumber of item.ticketNumbers) {
+          mapped.push({
+            id: `${payment._id}_${ticketNumber}`,
+            drawName: item.drawName,
+            prize: `₹${item.pricePerTicket} + GST`,
+            drawTime: `${new Date(item.drawDate).toLocaleDateString("en-IN")} • ${item.drawTime}`,
+            ticketNumber: ticketNumber,
+            status: payment.status === "processed" || payment.status === "success" ? "booked" : "draw_pending",
+            bookedAt: payment.createdAt instanceof Date ? payment.createdAt.toISOString() : payment.createdAt,
+          });
+        }
+      }
+    }
 
     return NextResponse.json({ tickets: mapped });
   } catch (error) {

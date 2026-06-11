@@ -8,6 +8,7 @@ const SECTION_LABELS: Record<AdminSection, { title: string; subtitle: string }> 
   users: { title: "User Management", subtitle: "View, edit and manage registered users" },
   draws: { title: "Draw Management", subtitle: "Create, edit and control lottery draws" },
   results: { title: "Results", subtitle: "Declare and view lottery results" },
+  imageResults: { title: "Image Results", subtitle: "Upload and manage visual draw results" },
   blog: { title: "Blog Management", subtitle: "Create, edit and manage blog posts" },
   carousel: { title: "Carousel Management", subtitle: "Manage homepage slider images" },
   testimonials: { title: "Testimonial Management", subtitle: "View, publish, edit and delete client reviews" },
