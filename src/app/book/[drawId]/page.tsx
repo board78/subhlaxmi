@@ -30,6 +30,15 @@ export default function BookDrawPage() {
     setAuthOpen(true);
   };
 
+  useEffect(() => {
+    const handleAuthEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<"signin" | "register">;
+      openAuth(customEvent.detail);
+    };
+    window.addEventListener("open-auth-modal", handleAuthEvent);
+    return () => window.removeEventListener("open-auth-modal", handleAuthEvent);
+  }, []);
+
   const updateAuthedUser = useCallback((user: SafeUser | null) => {
     setAuthUser(user);
   }, []);

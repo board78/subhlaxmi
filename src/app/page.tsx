@@ -103,6 +103,15 @@ export default function Home() {
 
   const openAuth = (mode: "signin" | "register") => { setAuthMode(mode); setAuthOpen(true); };
 
+  useEffect(() => {
+    const handleAuthEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<"signin" | "register">;
+      openAuth(customEvent.detail);
+    };
+    window.addEventListener("open-auth-modal", handleAuthEvent);
+    return () => window.removeEventListener("open-auth-modal", handleAuthEvent);
+  }, []);
+
   const openBookPage = (draw: DrawSummaryPublic) => router.push(`/book/${draw.id}`);
 
 

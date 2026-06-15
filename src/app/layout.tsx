@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppToaster } from "@/components/AppToaster";
 import { ThemeSync } from "@/components/ThemeSync";
 import { FacebookPixelProvider } from "@/components/FacebookPixelProvider";
+import { RegistrationPopup } from "@/components/RegistrationPopup";
 import "./globals.css";
 
 function getSiteUrl(): URL {
@@ -78,6 +79,7 @@ export default function RootLayout({
         <AppToaster />
         <FacebookPixelProvider />
         {children}
+        <RegistrationPopup />
       </body>
     </html>
   );
