@@ -14,8 +14,15 @@ export function RegistrationPopup() {
   const startTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      setIsOpen(true);
-    }, 5000); // 300,000 ms = 5 minutes
+      const isAuthUrl = window.location.search.includes("auth=");
+      const isAuthModalOpen = (window as any).isAuthModalOpen;
+      
+      if (!isAuthUrl && !isAuthModalOpen) {
+        setIsOpen(true);
+      } else {
+        startTimer(); // Try again later
+      }
+    }, 10000); // 10 seconds
   };
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import type { SafeUser } from "@/lib/auth";
 
 type AuthMode = "signin" | "register" | "forgot_password";
@@ -438,6 +438,12 @@ function AuthModalBody({
 }
 
 export function AuthModal({ open, initialMode, onClose, onAuthed }: Props) {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).isAuthModalOpen = open;
+    }
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open ? (
