@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { AppToaster } from "@/components/AppToaster";
 import { ThemeSync } from "@/components/ThemeSync";
 import { FacebookPixelProvider } from "@/components/FacebookPixelProvider";
@@ -13,26 +14,29 @@ function getSiteUrl(): URL {
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
-  applicationName: "Subhlaxmi",
+  applicationName: "Subhlaxmi Lottery",
   title: {
-    default: "Subhlaxmi | Modern Lottery Tickets & Live Results",
-    template: "%s | Subhlaxmi",
+    default: "Lottery Online | Subhlaxmi Lottery - Buy Tickets & Live Results",
+    template: "%s | Subhlaxmi Lottery",
   },
   description:
-    "Play Subhlaxmi Lottery online. Book premium lottery tickets securely, track live draw timings, and check instant results. India's trusted online lottery platform.",
+    "Play online lottery at Subhlaxmi Lottery. Buy premium lottery tickets securely, track live lottery draw timings, and check instant lottery results. India's top trusted online lottery platform.",
   alternates: {
     canonical: "/",
   },
   keywords: [
+    "lottery",
+    "online lottery",
+    "lottery ticket",
+    "buy lottery",
+    "lottery result",
     "Subhlaxmi",
     "Subhlaxmi Lottery",
-    "Subhlaxmi Result",
     "online lottery India",
     "buy lottery tickets online",
-    "Subhlaxmi weekly draw",
     "live lottery results",
-    "Kuber Ka Khajana",
-    "India lottery tickets",
+    "play lottery online",
+    "today lottery result",
     "trusted lottery platform",
   ],
   robots: {
@@ -48,21 +52,21 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Subhlaxmi",
-    title: "Subhlaxmi | Modern Lottery Tickets & Live Results",
+    siteName: "Subhlaxmi Lottery",
+    title: "Lottery Online | Subhlaxmi Lottery - Buy Tickets & Live Results",
     description:
-      "Book tickets, follow draw timings, and check live results — designed for a clean, premium experience.",
+      "Play online lottery at Subhlaxmi. Buy premium lottery tickets, follow draw timings, and check live lottery results securely.",
     url: "/",
     images: [
-      { url: "/kuber.png", width: 1200, height: 630, alt: "Subhlaxmi - Kuber Ka Khajana" },
-      { url: "/winnerticket.png", width: 1200, height: 630, alt: "Subhlaxmi winner ticket" },
+      { url: "/kuber.png", width: 1200, height: 630, alt: "Subhlaxmi Lottery - Kuber Ka Khajana" },
+      { url: "/winnerticket.png", width: 1200, height: 630, alt: "Subhlaxmi Lottery winner ticket" },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Subhlaxmi | Modern Lottery Tickets & Live Results",
+    title: "Lottery Online | Subhlaxmi Lottery - Buy Tickets & Live Results",
     description:
-      "Book tickets, follow draw timings, and check live results — designed for a clean, premium experience.",
+      "Play online lottery at Subhlaxmi. Buy premium lottery tickets, follow draw timings, and check live lottery results securely.",
     images: ["/kuber.png"],
   },
 };
@@ -72,14 +76,34 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Subhlaxmi Lottery",
+    "url": "https://subhlaxmi.in",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://subhlaxmi.in/live-results?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    "description": "Play online lottery at Subhlaxmi Lottery. Buy premium lottery tickets securely, track live lottery draw timings, and check instant lottery results."
+  };
+
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="flex min-h-full flex-col">
         <ThemeSync />
         <AppToaster />
         <FacebookPixelProvider />
         {children}
         <RegistrationPopup />
+        <GoogleAnalytics gaId="G-XB00843X9G" />
       </body>
     </html>
   );

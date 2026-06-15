@@ -16,6 +16,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.9",
     "@types/nodemailer": "^8.0.0",
     "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",

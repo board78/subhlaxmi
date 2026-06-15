@@ -67,10 +67,10 @@ export const siteCopy: Record<Language, CopyPack> = {
   en: {
     navItems: ["Home", "Results"],
     badge: "",
-    heroTitle: "Subhlaxmi",
-    heroSubtitle: "Kuber Ka Khajana. Dhan Varsha. Clean digital lottery experience.",
+    heroTitle: "Subhlaxmi Lottery",
+    heroSubtitle: "India's Trusted Online Lottery. Play Kuber Ka Khajana & Win Big.",
     heroDescription:
-      "Book lottery tickets, check live draw timings, and explore premium jackpot games in one clean and easy experience.",
+      "Play the best online lottery in India. Book lottery tickets safely, check live lottery results, and explore premium jackpot games online.",
     primaryCta: "Play Now",
     secondaryCta: "Check Live Results",
     signIn: "Sign In",
@@ -80,7 +80,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     liveResultsTitle: "Live Result Board",
     countdownTitle: "Next Mega Draw",
     nextDrawAt: "Next draw at",
-    footerTitle: "Fast UPI checkout and live lottery results",
+    footerTitle: "Fast UPI checkout for online lottery tickets",
     footerDescription:
       "Pay with UPI in seconds and follow draws, tickets, and results in one clear place.",
     footerButton: "Create Account",
@@ -148,10 +148,10 @@ export const siteCopy: Record<Language, CopyPack> = {
   hi: {
     navItems: ["होम", "रिजल्ट"],
     badge: "",
-    heroTitle: "Subhlaxmi",
-    heroSubtitle: "कुबेर का खजाना। धन वर्षा। साफ और आधुनिक डिजिटल लॉटरी अनुभव।",
+    heroTitle: "Subhlaxmi Lottery",
+    heroSubtitle: "भारत की भरोसेमंद ऑनलाइन लॉटरी। कुबेर का खजाना खेलें और जीतें।",
     heroDescription:
-      "एक ही जगह पर लॉटरी टिकट बुक करें, लाइव ड्रॉ टाइमिंग देखें और प्रीमियम जैकपॉट गेम्स एक्सप्लोर करें।",
+      "भारत की सबसे अच्छी ऑनलाइन लॉटरी खेलें। सुरक्षित रूप से लॉटरी टिकट बुक करें, लाइव लॉटरी रिजल्ट देखें और प्रीमियम जैकपॉट गेम्स एक्सप्लोर करें।",
     primaryCta: "अभी खेलें",
     secondaryCta: "लाइव रिजल्ट देखें",
     signIn: "साइन इन",
@@ -161,7 +161,7 @@ export const siteCopy: Record<Language, CopyPack> = {
     liveResultsTitle: "लाइव रिजल्ट बोर्ड",
     countdownTitle: "अगला मेगा ड्रॉ",
     nextDrawAt: "अगला ड्रॉ",
-    footerTitle: "तेज UPI चेकआउट और लाइव लॉटरी रिजल्ट",
+    footerTitle: "ऑनलाइन लॉटरी टिकट के लिए तेज UPI चेकआउट",
     footerDescription:
       "UPI से सेकंड्स में पेमेंट करें और ड्रॉ, टिकट, रिजल्ट सब एक ही जगह साफ़ तरीके से देखें।",
     footerButton: "अकाउंट बनाएं",
