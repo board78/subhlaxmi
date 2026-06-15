@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   },
   description:
     "Play online lottery at Subhlaxmi Lottery. Buy premium lottery tickets securely, track live lottery draw timings, and check instant lottery results. India's top trusted online lottery platform.",
+  verification: {
+    google: 'WUm_WRHMrUFa1_Jse43ozsnN1BUFGIik0KfhR36mq5M',
+  },
   alternates: {
     canonical: "/",
   },
