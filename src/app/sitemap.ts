@@ -1,7 +1,7 @@
 function getBaseUrl(): URL {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (raw) return new URL(raw);
-  return new URL("http://localhost:3000");
+  return new URL("https://bookmysubhlaxmi.com");
 }
 
 export default function sitemap() {
