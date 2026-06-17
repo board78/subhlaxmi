@@ -1,7 +1,7 @@
 function getBaseUrl(): URL {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (raw) return new URL(raw);
-  return new URL("https://bookmysubhlaxmi.com");
+  return new URL("https://subhlaxmi.in");
 }
 
 export default function robots() {

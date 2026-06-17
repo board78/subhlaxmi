@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 function getBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (raw) return raw.replace(/\/$/, ""); // trailing slash remove
-  return "https://bookmysubhlaxmi.com";
+  return "https://subhlaxmi.in";
 }
 
 async function getBlogSlugs(): Promise<string[]> {
@@ -34,19 +34,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/my-tickets`,
+      url: `${baseUrl}/live-results`,
+      lastModified: now,
+      changeFrequency: "always",
+      priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/blog`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/live-results`,
-      lastModified: now,
-      changeFrequency: "always",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/blog`,
+      url: `${baseUrl}/my-tickets`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.8,
@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/support`,
       lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.6,
     },
   ];
 

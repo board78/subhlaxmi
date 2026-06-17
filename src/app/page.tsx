@@ -135,6 +135,19 @@ export default function Home() {
 
   return (
     <div className="royal-surface royal-grid royal-frame relative min-h-screen overflow-hidden bg-[#12040c] text-white">
+      {/* SEO: Hidden content for Google crawlers */}
+      <div aria-hidden="true" style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap" }}>
+        <h1>Subhlaxmi Lottery - Online Lottery India</h1>
+        <p>Subhlaxmi Lottery is India&apos;s most trusted online lottery platform. Buy lottery tickets online, check live lottery results. Subhlaxmi lottery result today. सुभलक्ष्मी लॉटरी - shubhlaxmi lottery - subhalaxmi lottery. Kuber Ka Khajana lottery draw.</p>
+        <ul>
+          <li>Subhlaxmi Lottery - Buy Tickets Online</li>
+          <li>Live Lottery Results - Subhlaxmi Lottery</li>
+          <li>Kuber Ka Khajana Draw - Subhlaxmi</li>
+          <li>Subhlaxmi Lottery Result Today</li>
+          <li>Online Lottery India - Trusted Platform</li>
+        </ul>
+      </div>
+
       {/* Ambient blobs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />
