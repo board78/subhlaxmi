@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -119,9 +120,11 @@ export function HeaderBar({
           >
             <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 pb-4 pt-5">
               <div className="min-w-0">
-                <img
+                <Image
                   src="/logo.png"
                   alt="Subhlaxmi Logo"
+                  width={120}
+                  height={40}
                   className="h-10 w-auto object-contain"
                 />
               </div>
@@ -251,9 +254,12 @@ export function HeaderBar({
             aria-label="Subhlaxmi — go to home"
             className="sl-brand-lockup group flex min-w-0 flex-1 flex-col items-start leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
           >
-            <img
+            <Image
               src="/logo.png"
               alt="Subhlaxmi Logo"
+              width={160}
+              height={56}
+              priority
               className="h-14 w-auto object-contain"
             />
           </Link>
@@ -295,9 +301,12 @@ export function HeaderBar({
               aria-label="Subhlaxmi — go to home"
               className="sl-brand-lockup group flex flex-col items-start leading-none rounded-sm outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-0"
             >
-              <img
+              <Image
                 src="/logo.png"
                 alt="Subhlaxmi Logo"
+                width={180}
+                height={64}
+                priority
                 className="h-16 w-auto object-contain"
               />
             </Link>

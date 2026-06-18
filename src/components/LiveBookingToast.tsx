@@ -19,9 +19,12 @@ export function LiveBookingToast() {
   const realBookingsRef = useRef<RealBooking[]>([]);
   const shownIdsRef = useRef<Set<string>>(new Set());
 
-  // Fetch real bookings periodically
+  // Fetch real bookings periodically — skip when tab is hidden to save server resources
   useEffect(() => {
     const fetchRecentBookings = async () => {
+      // Don't hit the server when the user's tab is inactive
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+
       try {
         const res = await fetch("/api/tickets/recent");
         const json = await res.json();
@@ -222,14 +225,6 @@ export function LiveBookingToast() {
                 <span style={{ fontWeight: 600, color: "#FFD700", textTransform: "capitalize" }}>{booking.drawName}</span>
               </p>
             </div>
-            {/* Inline style for the pulse animation if it doesn't exist globally */}
-            <style>{`
-              @keyframes pulse {
-                0% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.5; transform: scale(0.8); }
-                100% { opacity: 1; transform: scale(1); }
-              }
-            `}</style>
           </motion.div>
         ),
         { duration: 4000 }

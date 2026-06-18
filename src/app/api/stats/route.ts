@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 
-export const dynamic = "force-dynamic";
+// Cache for 2 minutes — platform stats (user/winner/ticket counts) are approximate
+// display values; no need to run 3 countDocuments() queries on every page load.
+export const revalidate = 120;
 
 /**
  * GET /api/stats

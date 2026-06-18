@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CopyPack } from "@/app/siteCopy";
 import { formatDrawTime } from "@/lib/utils";
 import { Counter, TimeBox } from "./CounterAndTimeBox";
+import { useTestimonials } from "@/hooks/useHomeData";
 
 type Props = {
   currentCopy: CopyPack;
@@ -14,22 +15,11 @@ type Props = {
 };
 
 export function RightInsightColumn({ currentCopy, countdown, nextDraw }: Props) {
-  const [testimonials, setTestimonials] = useState<any[]>(currentCopy.testimonials);
+  // SWR-backed testimonials — falls back to static copy; refreshes every 5 min in background
+  const testimonials = useTestimonials(currentCopy.testimonials) as typeof currentCopy.testimonials;
   const [activeIndex, setActiveIndex] = useState(0);
   const testimonialCanvasRef = useRef<HTMLCanvasElement>(null);
   const skipInitialConfetti = useRef(true);
-
-  // Load dynamic testimonials from API
-  useEffect(() => {
-    fetch("/api/testimonials")
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.testimonials && data.testimonials.length > 0) {
-          setTestimonials(data.testimonials);
-        }
-      })
-      .catch(() => {});
-  }, [currentCopy.testimonials]);
 
   // Auto-rotate testimonials
   useEffect(() => {
@@ -106,7 +96,7 @@ export function RightInsightColumn({ currentCopy, countdown, nextDraw }: Props) 
 
           <div className="flex justify-center gap-1.5 pt-0.5">
             {testimonials.map((item, i) => (
-              <button key={item.id || item.name} type="button" onClick={() => setActiveIndex(i)}
+              <button key={(item as { id?: string }).id ?? item.name} type="button" onClick={() => setActiveIndex(i)}
                 className={`h-1.5 rounded-full transition sm:h-2 ${i === activeIndex ? "w-5 bg-amber-300 sm:w-6" : "w-1.5 bg-white/25 hover:bg-white/40"}`}
                 aria-label={`Show testimonial ${i + 1}`}
               />

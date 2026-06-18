@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getActiveDrawSummaries } from "@/lib/draws";
 
-export const dynamic = "force-dynamic";
+// Cache for 30 seconds — draws change infrequently, no need to hit MongoDB on every request.
+export const revalidate = 30;
 
 export async function GET() {
   try {

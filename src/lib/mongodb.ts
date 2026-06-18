@@ -12,11 +12,15 @@ declare global {
 }
 
 const client = new MongoClient(uri);
-const clientPromise = global._subhlaxmiMongoClientPromise ?? client.connect();
 
-if (process.env.NODE_ENV !== "production") {
-  global._subhlaxmiMongoClientPromise = clientPromise;
+// Cache the connection promise in the global object for BOTH dev and production.
+// In dev: prevents multiple connections during hot-reload.
+// In production (serverless): reuses the connection across invocations on the same instance.
+if (!global._subhlaxmiMongoClientPromise) {
+  global._subhlaxmiMongoClientPromise = client.connect();
 }
+
+const clientPromise = global._subhlaxmiMongoClientPromise;
 
 export async function getDb(): Promise<Db> {
   const connectedClient = await clientPromise;

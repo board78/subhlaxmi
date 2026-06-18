@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 
-export const dynamic = "force-dynamic";
+// Cache for 60 seconds — results are declared by admin, not real-time; skip the heavy
+// double-join aggregation on every request.
+export const revalidate = 60;
 
 /**
  * GET /api/results
