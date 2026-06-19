@@ -46,7 +46,7 @@ export function Footer({ language = "en" }: FooterProps) {
     {
       icon: <FaWhatsapp className="w-4 h-4 text-emerald-500" />,
       label: isHi ? "व्हाट्सएप सहायता" : "WhatsApp Support",
-      href: "https://wa.me/8949178289",
+      href: "https://wa.me/+12236673706",
     },
   ];
 

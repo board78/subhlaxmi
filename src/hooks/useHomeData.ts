@@ -94,3 +94,17 @@ export function useTestimonials(fallback: unknown[] = []) {
   );
   return data?.testimonials ?? fallback;
 }
+
+// ── Carousel Images ───────────────────────────────────────────────────────────
+export function useCarouselImages(fallback: string[] = []) {
+  const { data } = useSWR<{ images: { url: string }[] }>(
+    "/api/carousel-images",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 300_000,      // carousel images rarely change
+      dedupingInterval: 300_000,
+    }
+  );
+  return data?.images?.map(img => img.url) ?? fallback;
+}

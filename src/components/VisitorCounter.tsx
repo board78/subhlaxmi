@@ -2,46 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useSWR from "swr";
 
 interface VisitorCounterProps {
   language?: "en" | "hi";
 }
 
+const fetcher = (url: string) => fetch(url).then(r => r.json());
+
 export function VisitorCounter({ language = "en" }: VisitorCounterProps) {
-  const [count, setCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-
+  // Call POST on mount to record view, then let SWR handle the GET polling
   useEffect(() => {
-    let active = true;
-
-    async function fetchVisitorCount(isMount = false) {
-      try {
-        const method = isMount ? "POST" : "GET";
-        const res = await fetch("/api/visitors", { method });
-        if (res.ok && active) {
-          const data = await res.json();
-          setCount(data.count || 0);
-        }
-      } catch (error) {
-        console.error("Error fetching visitor count:", error);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    // Call POST on page load to record the page view
-    fetchVisitorCount(true);
-
-    // Poll every 15 seconds to give the dashboard a hyper-active feel
-    const interval = setInterval(() => {
-      fetchVisitorCount(false);
-    }, 15000);
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
+    fetch("/api/visitors", { method: "POST" }).catch(() => {});
   }, []);
+
+  // SWR automatically handles polling, caching, and stops polling when tab is hidden!
+  const { data } = useSWR("/api/visitors", fetcher, {
+    refreshInterval: 15000,
+    revalidateOnFocus: true,
+  });
+
+  const count = data?.count || 0;
 
   // Format count to standard 5-digit string, e.g. "01439"
   const digits = String(count).padStart(5, "0").split("");
