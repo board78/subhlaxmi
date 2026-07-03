@@ -23,14 +23,12 @@ export function Footer({ language = "en" }: FooterProps) {
 
   const colQuickLinks = isHi ? "त्वरित लिंक्स" : "Quick Links";
   const colContact = isHi ? "सपोर्ट संपर्क" : "Contact & Support";
-  const colLegal = isHi ? "महत्वपूर्ण नीतियां" : "Legal & Policies";
 
   const links = [
     { label: isHi ? "मुख्य पृष्ठ" : "Home", href: "/" },
-    { label: isHi ? "मेरे टिकट" : "My Tickets", href: "/?auth=signin" },
-    { label: isHi ? "लाइव परिणाम" : "Live Results", href: "#" },
-    { label: isHi ? "जैकपॉट्स" : "Jackpots", href: "#" },
-    { label: isHi ? "सपोर्ट डेस्क" : "Support Help", href: "#" },
+    { label: isHi ? "मेरे टिकट" : "My Tickets", href: "/my-tickets" },
+    { label: isHi ? "लाइव परिणाम" : "Live Results", href: "/live-results" },
+    { label: isHi ? "सपोर्ट डेस्क" : "Support Help", href: "/support" },
   ];
 
   const contactItems = [
@@ -48,13 +46,6 @@ export function Footer({ language = "en" }: FooterProps) {
       label: isHi ? "व्हाट्सएप सहायता" : "WhatsApp Support",
       href: "https://wa.me/+12236673706",
     },
-  ];
-
-  const legalLinks = [
-    { label: isHi ? "नियम और शर्तें" : "Terms & Conditions", href: "#" },
-    { label: isHi ? "गोपनीयता नीति" : "Privacy Policy", href: "#" },
-    { label: isHi ? "वापसी नीति" : "Refund Policy", href: "#" },
-    { label: isHi ? "ज़िम्मेदारी से खेलें" : "Responsible Gaming", href: "#" },
   ];
 
   const [isVisible, setIsVisible] = useState(false);
@@ -89,21 +80,27 @@ export function Footer({ language = "en" }: FooterProps) {
       <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-amber-500/5 blur-3xl" />
       <div className="pointer-events-none absolute top-0 left-0 h-48 w-48 rounded-full bg-fuchsia-500/5 blur-3xl" />
 
-      <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {/*
+        Layout fix: brand column carries far more content (desc + 18+ box)
+        than the two link columns, so on lg screens it now spans 2 of 4
+        tracks instead of splitting evenly into 4 equal columns. This keeps
+        row heights balanced and avoids a lopsided, top-heavy footer.
+      */}
+      <div className="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
 
         {/* Brand column */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-2">
           <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-2xl font-black tracking-wider text-transparent uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
             Subhlaxmi
           </span>
-          <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+          <p className="max-w-md text-xs text-zinc-400 leading-relaxed font-medium">
             {brandDesc}
           </p>
 
           {/* 18+ badge & warning */}
-          <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 shadow-inner">
+          <div className="mt-4 flex max-w-md flex-col gap-2 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 shadow-inner">
             <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 uppercase tracking-wide">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               {playLabel}
@@ -124,29 +121,9 @@ export function Footer({ language = "en" }: FooterProps) {
               <li key={idx}>
                 <Link
                   href={link.href}
-                  className="text-xs font-semibold text-zinc-400 transition hover:text-amber-400 flex items-center gap-1.5"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-amber-400"
                 >
-                  <span className="h-1 w-1 rounded-full bg-orange-500/40" />
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Legal links column */}
-        <div className="flex flex-col gap-3">
-          <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-200 border-b border-white/5 pb-2">
-            {colLegal}
-          </h4>
-          <ul className="flex flex-col gap-2.5">
-            {legalLinks.map((link, idx) => (
-              <li key={idx}>
-                <Link
-                  href={link.href}
-                  className="text-xs font-semibold text-zinc-400 transition hover:text-amber-400 flex items-center gap-1.5"
-                >
-                  <span className="h-1 w-1 rounded-full bg-amber-500/40" />
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-orange-500/40" />
                   {link.label}
                 </Link>
               </li>
@@ -164,7 +141,7 @@ export function Footer({ language = "en" }: FooterProps) {
               ? "हमारे ग्राहक सपोर्ट चैनल लाइव हैं। भुगतान पूछताछ या सामान्य सहायता के लिए कभी भी पहुंचें।"
               : "Our customer support channels are live. Reach out anytime for payment inquiries or general assistance."}
           </p>
-          <ul className="mt-2 flex flex-col gap-3">
+          <ul className="mt-1 flex flex-col gap-3">
             {contactItems.map((item, idx) => (
               <li key={idx}>
                 <a
@@ -184,13 +161,13 @@ export function Footer({ language = "en" }: FooterProps) {
       </div>
 
       {/* Bottom section line & copyright info */}
-      <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-6 text-center sm:flex-row sm:text-left">
+      <div className="mt-8 flex flex-col items-center gap-4 border-t border-white/5 pt-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
         <p className="text-[10px] font-semibold text-zinc-500 tracking-wide uppercase">
           &copy; {new Date().getFullYear()} Subhlaxmi. All rights reserved.
         </p>
 
         {/* Security indicators */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-end">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wide">
             <FaShieldHalved className="w-2.5 h-2.5" />
             SSL Encrypted
