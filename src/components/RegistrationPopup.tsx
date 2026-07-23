@@ -13,11 +13,18 @@ export function RegistrationPopup() {
 
   const startTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
+    timerRef.current = setTimeout(async () => {
       const isAuthUrl = window.location.search.includes("auth=");
       const isAuthModalOpen = (window as any).isAuthModalOpen;
       
       if (!isAuthUrl && !isAuthModalOpen) {
+        try {
+          const res = await fetch("/api/auth/me");
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.user) return; // User already signed in
+          }
+        } catch (e) {}
         setIsOpen(true);
       } else {
         startTimer(); // Try again later
@@ -29,6 +36,7 @@ export function RegistrationPopup() {
     // If user is logged in, don't show the popup and don't start the interval
     if (authUser) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      setIsOpen(false);
       return;
     }
 

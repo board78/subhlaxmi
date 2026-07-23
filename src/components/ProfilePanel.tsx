@@ -285,52 +285,6 @@ export function ProfilePanel({ open, user, onClose, onUserUpdated }: Props) {
               <section className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-semibold text-white">User Settings</h3>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">
-                      Control alerts and language for your lottery account.
-                    </p>
-                  </div>
-                  {saving ? <span className="text-xs text-amber-200">Saving...</span> : null}
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <SettingToggle
-                    label="Booking alerts"
-                    description="Get reminders for booked ticket draw timings."
-                    checked={activeUser.settings.bookingAlerts}
-                    onChange={(checked) => updateSettings({ bookingAlerts: checked })}
-                  />
-                  <SettingToggle
-                    label="Marketing emails"
-                    description="Receive offers, jackpot news, and reward updates."
-                    checked={activeUser.settings.marketingEmails}
-                    onChange={(checked) => updateSettings({ marketingEmails: checked })}
-                  />
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-                    <p className="text-sm font-semibold text-zinc-100">Preferred language</p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {(["en", "hi"] as const).map((language) => (
-                        <button
-                          key={language}
-                          type="button"
-                          onClick={() => updateSettings({ language })}
-                          className={`cursor-pointer rounded-full px-3 py-2 text-xs font-semibold transition ${
-                            activeUser.settings.language === language
-                              ? "bg-amber-300 text-[#2d1400]"
-                              : "bg-white/8 text-zinc-300 hover:bg-white/12"
-                          }`}
-                        >
-                          {language === "en" ? "English" : "Hindi"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
                     <h3 className="font-semibold text-white">Ticket Booking History</h3>
                     <p className="mt-1 text-xs text-zinc-500">Recent tickets booked from this account.</p>
                   </div>
