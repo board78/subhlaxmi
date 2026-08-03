@@ -76,7 +76,7 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-[#12040c] text-white">
+    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />

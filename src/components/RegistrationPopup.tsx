@@ -90,7 +90,7 @@ export function RegistrationPopup() {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.95, y: 10, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="royal-panel relative w-full max-w-lg overflow-hidden rounded-[32px] border border-amber-300/20 bg-[#12040c] shadow-2xl shadow-amber-900/20"
+            className="royal-panel relative w-full max-w-lg overflow-hidden rounded-[32px] border border-amber-300/20 bg-background shadow-2xl shadow-amber-900/20"
           >
             {/* Ambient Glow */}
             <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-amber-500/20 blur-[80px]" />
@@ -130,7 +130,7 @@ export function RegistrationPopup() {
                 </button>
                 <button
                   onClick={handleLogin}
-                  className="flex-1 rounded-full border border-amber-200/30 bg-black/40 px-6 py-3.5 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-300/10 active:scale-95"
+                  className="flex-1 rounded-full border border-amber-200/30 bg-black/40 px-6 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-amber-300/10 active:scale-95"
                 >
                   Sign In
                 </button>

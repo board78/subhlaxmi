@@ -358,6 +358,58 @@ input[type="reset"]:disabled { cursor: not-allowed; }
 :root[data-theme="light"] [class*="bg-gray-800"] *,
 :root[data-theme="light"] [class*="bg-gray-700"] * { color: #f1f5f9 !important; }
 
+/* Generic global text overrides for light mode */
+:root[data-theme="light"] .text-white:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+),
+:root[data-theme="light"] .text-zinc-100:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+),
+:root[data-theme="light"] .text-zinc-200:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+) {
+  color: var(--lm-text-primary) !important;
+}
+
+:root[data-theme="light"] .text-zinc-300:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+),
+:root[data-theme="light"] .text-zinc-400:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+) {
+  color: var(--lm-text-secondary) !important;
+}
+
+:root[data-theme="light"] .text-zinc-500:not(
+  [class*="bg-"],
+  [class*="from-"],
+  [class*="to-"],
+  .sl-cta-gradient,
+  button
+) {
+  color: var(--lm-text-muted) !important;
+}
+
 /* Special text color overrides */
 :root[data-theme="light"] [class*="text-purple-200"] { color: #7c3aed !important; }
 :root[data-theme="light"] [class*="text-emerald-200"] { color: #059669 !important; }

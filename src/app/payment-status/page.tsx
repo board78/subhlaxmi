@@ -325,7 +325,7 @@ function PaymentStatusContent() {
   const totalTickets = draws.reduce((s, d) => s + d.tickets, 0);
 
   return (
-    <div className="royal-surface royal-grid relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#12040c] px-4 py-8">
+    <div className="royal-surface royal-grid relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-8">
       {status === "success" && (
         <canvas
           ref={canvasRef}
@@ -548,7 +548,7 @@ function PaymentStatusContent() {
 
 function LoadingFallback() {
   return (
-    <div className="royal-surface flex min-h-screen items-center justify-center bg-[#12040c]">
+    <div className="royal-surface flex min-h-screen items-center justify-center bg-background">
       <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-400/30 border-t-amber-400" />
     </div>
   );

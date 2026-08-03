@@ -179,7 +179,7 @@ function AuthModalBody({
       animate={{ y: 0, scale: 1 }}
       exit={{ y: 16, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="royal-panel relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#12040c] p-5 shadow-2xl shadow-black/40 sm:p-6"
+      className="royal-panel relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-background p-5 shadow-2xl shadow-black/40 sm:p-6"
     >
       <button
         type="button"

@@ -92,7 +92,7 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
   };
 
   return (
-    <div className="royal-surface royal-grid royal-frame relative min-h-screen overflow-hidden bg-[#12040c] text-white">
+    <div className="royal-surface royal-grid royal-frame relative min-h-screen overflow-hidden bg-background text-foreground">
       {/* Ambient blobs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />

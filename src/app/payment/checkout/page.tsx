@@ -50,7 +50,7 @@ function CheckoutContent() {
   ].filter((a) => a.href);
 
   return (
-    <div className="royal-surface flex min-h-screen items-center justify-center bg-[#12040c] px-4 py-10">
+    <div className="royal-surface flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="royal-panel w-full max-w-md rounded-[28px] border border-white/10 bg-[#17060d]/95 p-6 sm:p-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300/70">Secure payment</p>
         <h1 className="mt-2 text-xl font-bold text-white">Complete your payment</h1>
@@ -100,7 +100,7 @@ export default function PaymentCheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#12040c]">
+        <div className="flex min-h-screen items-center justify-center bg-background">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" />
         </div>
       }

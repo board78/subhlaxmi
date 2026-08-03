@@ -79,7 +79,7 @@ export default function MyTicketsPage() {
   };
 
   return (
-    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-[#12040c] text-white">
+    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />
@@ -194,8 +194,8 @@ export default function MyTicketsPage() {
                     className="royal-panel relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-[#1c0d17] to-[#12040c] p-6 shadow-xl transition hover:border-amber-500/20 hover:shadow-amber-900/20"
                   >
                     {/* Ticket notch decorators */}
-                    <div className="absolute left-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-r border-white/10 bg-[#12040c]" />
-                    <div className="absolute right-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-l border-white/10 bg-[#12040c]" />
+                    <div className="absolute left-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-r border-white/10 bg-background" />
+                    <div className="absolute right-[-10px] top-[50%] h-5 w-5 -translate-y-1/2 rounded-full border-l border-white/10 bg-background" />
 
                     {/* Top section: draw info */}
                     <div className="flex items-start justify-between gap-3">

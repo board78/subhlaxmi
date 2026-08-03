@@ -179,7 +179,7 @@ export function ImageResultsManagement() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((img) => (
-            <div key={img.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#12040c]">
+            <div key={img.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-background">
               <div className="relative aspect-[3/4] w-full bg-black/40">
                 <Image
                   src={img.imageUrl}

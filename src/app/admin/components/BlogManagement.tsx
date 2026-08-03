@@ -581,7 +581,7 @@ export function BlogManagement() {
         {/* Delete Confirmation Modal */}
         {postToDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#12040c] p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background p-6 shadow-2xl">
               <h3 className="text-lg font-bold text-white">Delete Post</h3>
               <p className="mt-2 text-sm text-zinc-400">
                 Are you sure you want to delete <strong className="text-zinc-200">"{postToDelete.title}"</strong>? This action cannot be undone.

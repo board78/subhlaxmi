@@ -37,7 +37,7 @@ export function VisitorCounter({ language = "en" }: VisitorCounterProps) {
   const descEn = "Live indexing of cumulative platform views refreshed in real-time.";
 
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#12040c]/40 p-6 shadow-2xl backdrop-blur-xl md:p-8 hover:bg-[#12040c]/50 transition-all duration-300">
+    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-background/40 p-6 shadow-2xl backdrop-blur-xl md:p-8 hover:bg-background/50 transition-all duration-300">
       
       {/* Background abstract gradient blobs for depth */}
       <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-500/8 blur-[100px]" />
