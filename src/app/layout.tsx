@@ -4,6 +4,7 @@ import { AppToaster } from "@/components/AppToaster";
 import { ThemeSync } from "@/components/ThemeSync";
 import { FacebookPixelProvider } from "@/components/FacebookPixelProvider";
 import { RegistrationPopup } from "@/components/RegistrationPopup";
+import { FloatingChatBox } from "@/components/FloatingChatBox";
 import "./globals.css";
 
 function getSiteUrl(): URL {
@@ -211,6 +212,7 @@ export default function RootLayout({
         <FacebookPixelProvider />
         {children}
         <RegistrationPopup />
+        <FloatingChatBox />
         <GoogleAnalytics gaId="G-XB00843X9G" />
       </body>
     </html>
