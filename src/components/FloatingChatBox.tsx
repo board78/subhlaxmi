@@ -243,7 +243,7 @@ export function FloatingChatBox() {
     }
 
     if (option === "WhatsApp Support") {
-      addBotMessage({ text: "You can reach us on WhatsApp at +91 0000000000" });
+      addBotMessage({ text: "You can reach us on WhatsApp at +12236673706. Easy to WhatsApp voice call." });
       return;
     }
 

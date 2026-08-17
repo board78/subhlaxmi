@@ -1,5 +1,87 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import type { EmailCartTicketItem } from "@/types/emails.types";
+
+const SUPPORT_INBOX = "subhlaxmilottery@gmail.com";
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[character];
+  });
+}
+
+export async function sendSupportRequestEmail({
+  name,
+  email,
+  subject,
+  message,
+}: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT ?? 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "");
+  const from = process.env.SMTP_FROM ?? "Subhlaxmi <no-reply@subhlaxmi.local>";
+
+  if (!host || !user || !pass) {
+    console.error("[Email Service] SMTP configuration missing. Cannot send support email.");
+    return { delivered: false, error: "SMTP not configured" };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    requireTLS: port === 587 ? true : undefined,
+    family: 4,
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
+  } as SMTPTransport.Options);
+
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message).replace(/\n/g, "<br />");
+
+  try {
+    await transporter.sendMail({
+      from,
+      to: SUPPORT_INBOX,
+      replyTo: email,
+      subject: `Support request: ${subject}`,
+      text: `New support request\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; color: #27272a;">
+          <h2 style="margin: 0 0 18px; color: #7c2d12;">New Support Request</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr><td style="padding: 10px; border: 1px solid #e4e4e7; font-weight: 700; width: 120px;">Name</td><td style="padding: 10px; border: 1px solid #e4e4e7;">${safeName}</td></tr>
+            <tr><td style="padding: 10px; border: 1px solid #e4e4e7; font-weight: 700;">Email</td><td style="padding: 10px; border: 1px solid #e4e4e7;"><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>
+            <tr><td style="padding: 10px; border: 1px solid #e4e4e7; font-weight: 700;">Subject</td><td style="padding: 10px; border: 1px solid #e4e4e7;">${safeSubject}</td></tr>
+          </table>
+          <p style="margin: 0 0 8px; font-weight: 700;">Message</p>
+          <div style="padding: 14px; border-radius: 8px; background: #fff7ed; border: 1px solid #fed7aa; line-height: 1.6;">${safeMessage}</div>
+        </div>`,
+    });
+    return { delivered: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown SMTP error";
+    console.error("[Email Service] Support email failed:", errorMessage);
+    return { delivered: false, error: errorMessage };
+  }
+}
 
 
 

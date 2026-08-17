@@ -82,6 +82,19 @@ body {
   scroll-behavior: smooth;
 }
 
+/* The support screen owns the only vertical scroll area. Keeping the document
+   itself locked avoids Chrome rendering body and page-shell scrollbars together. */
+html:has(.support-page) {
+  height: 100%;
+  overflow: hidden;
+}
+
+body:has(.support-page) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Pulse animation used by LiveBookingToast live indicator dot */
 @keyframes pulse {
   0%   { opacity: 1; transform: scale(1); }

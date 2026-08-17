@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { toast } from "sonner";
 import type { SafeUser } from "@/lib/auth";
+import { BadgeCheck, ChevronDown, Clock3, Mail, MessageCircleQuestion, Send, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function SupportPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function SupportPage() {
       .catch(() => {});
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !subject || !message) {
       toast.error("Please fill in all the fields.");
@@ -37,8 +38,18 @@ export default function SupportPage() {
     }
 
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+      const data = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        throw new Error(data.message ?? "Unable to submit your request.");
+      }
+
       setIsSubmitting(false);
       import("react-facebook-pixel")
         .then((x) => x.default)
@@ -53,7 +64,10 @@ export default function SupportPage() {
       });
       setSubject("");
       setMessage("");
-    }, 1200);
+    } catch (error) {
+      setIsSubmitting(false);
+      toast.error(error instanceof Error ? error.message : "Unable to submit your request.");
+    }
   };
 
   const faqs = [
@@ -76,7 +90,7 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="royal-surface royal-grid relative min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="support-page royal-surface royal-grid relative h-[100dvh] overflow-x-hidden overflow-y-auto bg-background text-foreground">
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-fuchsia-500/16 blur-3xl" />
@@ -92,62 +106,51 @@ export default function SupportPage() {
         }}
       />
 
-      <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-10 text-center sm:text-left">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/70">Help center</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Support & Assistance</h1>
-          <p className="mt-1 text-sm text-zinc-400">Have questions or need help with a transaction? We are here for you.</p>
-        </div>
+      <main className="relative mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
+        <section className="royal-panel relative mb-7 overflow-hidden rounded-[28px] border border-amber-300/20 bg-gradient-to-br from-[#250b18]/95 via-[#17060f]/95 to-[#32120d]/95 px-5 py-7 shadow-2xl shadow-black/20 sm:mb-9 sm:px-8 sm:py-9">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-400/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
+          <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-amber-200">
+                <Sparkles size={14} /> Help centre
+              </div>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">How can we help you today?</h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">Get quick answers, find payment guidance, or send our support team a message. We are here to make your experience smooth and secure.</p>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 backdrop-blur-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300"><BadgeCheck size={20} /></div>
+              <div><p className="text-xs font-semibold text-white">Always here to help</p><p className="mt-0.5 text-[11px] text-zinc-400">Response within 24 hours</p></div>
+            </div>
+          </div>
+        </section>
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Columns: FAQ and Contact Options */}
           <div className="space-y-8 lg:col-span-2">
-            {/* Quick Contact Grid */}
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* <div className="royal-panel flex items-start gap-4 rounded-3xl border border-white/10 bg-[#14070f]/90 p-5 backdrop-blur-xl">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">Call Helpline</h3>
-                  <p className="mt-1 text-xs text-zinc-400">Monday - Saturday (9 AM - 6 PM)</p>
-                  <p className="mt-2 text-sm font-semibold text-amber-300">+91 98765 43210</p>
-                </div>
-              </div> */}
-
-              <div className="royal-panel flex items-start gap-4 rounded-3xl border border-white/10 bg-[#14070f]/90 p-5 backdrop-blur-xl">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">Email Support</h3>
-                  <p className="mt-1 text-xs text-zinc-400">Available 24x7 for complex queries</p>
-                  <p className="mt-2 text-sm font-semibold text-amber-300">subhlaxmilottery@gmail.com</p>
-                </div>
+              <a href="mailto:subhlaxmilottery@gmail.com" className="royal-panel group flex items-start gap-4 rounded-[22px] border border-white/10 bg-[#14070f]/85 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-amber-400/35 hover:bg-[#1c0912]">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300 transition group-hover:bg-amber-400/20"><Mail size={20} /></div>
+                <div><p className="text-sm font-semibold text-white">Email support</p><p className="mt-1 text-xs leading-5 text-zinc-400">For account, payment and booking queries.</p><p className="mt-2 text-sm font-semibold text-amber-300">subhlaxmilottery@gmail.com</p></div>
+              </a>
+              <div className="royal-panel flex items-start gap-4 rounded-[22px] border border-white/10 bg-[#14070f]/85 p-5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-400/10 text-fuchsia-200"><Clock3 size={20} /></div>
+                <div><p className="text-sm font-semibold text-white">Quick response</p><p className="mt-1 text-xs leading-5 text-zinc-400">Our customer support team reviews every request carefully.</p><p className="mt-2 text-sm font-semibold text-amber-300">Usually within 24 hours</p></div>
               </div>
             </div>
 
             {/* FAQs */}
             <section className="space-y-4">
-              <h2 className="text-xl font-bold tracking-tight text-white">Frequently Asked Questions</h2>
+              <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300"><MessageCircleQuestion size={18} /></div><div><h2 className="text-xl font-bold tracking-tight text-white">Frequently asked questions</h2><p className="text-xs text-zinc-500">Quick answers to common questions</p></div></div>
               <div className="space-y-3">
                 {faqs.map((faq, idx) => (
                   <details
                     key={idx}
-                    className="royal-panel group rounded-2xl border border-white/10 bg-[#14070f]/50 p-4 transition-colors duration-200 open:bg-[#14070f]/90 open:border-amber-500/20"
+                    className="royal-panel group rounded-2xl border border-white/10 bg-[#14070f]/55 p-4 transition-all duration-200 open:border-amber-500/30 open:bg-[#1b0911]"
                   >
                     <summary className="flex cursor-pointer items-center justify-between font-medium text-zinc-200 outline-none hover:text-white select-none">
                       <span>{faq.q}</span>
-                      <span className="ml-2 text-zinc-500 transition-transform duration-200 group-open:rotate-180">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </span>
+                      <span className="ml-2 text-amber-300 transition-transform duration-200 group-open:rotate-180"><ChevronDown size={18} /></span>
                     </summary>
                     <div className="mt-3 text-sm leading-relaxed text-zinc-400 border-t border-white/5 pt-3">
                       {faq.a}
@@ -160,9 +163,9 @@ export default function SupportPage() {
 
           {/* Right Column: Ticket Submission Form */}
           <aside>
-            <div className="royal-panel rounded-3xl border border-white/10 bg-[#14070f]/90 p-6 backdrop-blur-xl sticky top-24">
-              <h2 className="text-lg font-semibold text-white">Submit a Ticket</h2>
-              <p className="mt-1 text-xs text-zinc-400">Drop us a line and we will get back to you within 24 hours.</p>
+            <div className="royal-panel sticky top-24 overflow-hidden rounded-[26px] border border-amber-300/20 bg-[#17070f]/95 p-5 shadow-2xl shadow-black/25 backdrop-blur-xl sm:p-6">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300"><ShieldCheck size={20} /></div><div><h2 className="text-lg font-semibold text-white">Submit a support ticket</h2><p className="mt-1 text-xs leading-5 text-zinc-400">Share the details and our team will get back to you within 24 hours.</p></div></div>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <div>
@@ -220,9 +223,9 @@ export default function SupportPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-full sl-cta-gradient py-3 text-sm font-bold text-white transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-full sl-cta-gradient py-3 text-sm font-bold text-white transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                 >
-                  {isSubmitting ? "Submitting..." : "Send Message"}
+                  <Send size={16} /> {isSubmitting ? "Submitting..." : "Send message"}
                 </button>
               </form>
             </div>
