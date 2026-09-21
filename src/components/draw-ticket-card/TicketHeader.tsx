@@ -94,18 +94,44 @@ export function TicketHeader({ draw, language }: Props) {
         </div>
       </div>
       <div style={{ textAlign: "center", marginBottom: 4 }}>
-        <h3
-          style={{
-            fontSize: 16,
-            fontWeight: 800,
-            color: "#FFFFFF",
-            margin: 0,
-            letterSpacing: "-0.01em",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          {(draw.drawSeriesName || draw.name.replace(/\s*#\d+$/, "")).replace(/\b\w/g, c => c.toUpperCase())}
-        </h3>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+          <h3
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: "#FFFFFF",
+              margin: 0,
+              letterSpacing: "-0.01em",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {(draw.drawSeriesName || draw.name.replace(/\s*#\d+$/, "")).replace(/\b\w/g, c => c.toUpperCase())}
+          </h3>
+          {(() => {
+            let dNum = draw.drawNumber;
+            if (!dNum) {
+              const match = draw.name.match(/#(\d+)$/);
+              if (match) dNum = parseInt(match[1], 10);
+            }
+            if (!dNum) return null;
+            return (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#000",
+                  backgroundColor: "#FFD700",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  fontFamily: "'DM Sans', sans-serif",
+                  textTransform: "uppercase"
+                }}
+              >
+                Draw #{dNum}
+              </span>
+            );
+          })()}
+        </div>
         <p
           style={{
             fontSize: 11,
