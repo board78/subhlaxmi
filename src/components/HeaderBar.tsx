@@ -125,6 +125,7 @@ export function HeaderBar({
                   alt="Subhlaxmi Logo"
                   width={120}
                   height={40}
+                  style={{ width: "auto", height: "auto" }}
                   className="h-10 w-auto object-contain"
                 />
               </div>
@@ -260,6 +261,7 @@ export function HeaderBar({
               width={160}
               height={56}
               priority
+              style={{ width: "auto", height: "auto" }}
               className="h-14 w-auto object-contain"
             />
           </Link>
@@ -307,6 +309,7 @@ export function HeaderBar({
                 width={180}
                 height={64}
                 priority
+                style={{ width: "auto", height: "auto" }}
                 className="h-16 w-auto object-contain"
               />
             </Link>

@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
-import { BlogEditorModal, type BlogPost } from "./blog/BlogEditorModal";
-import { BlogListTable } from "./blog/BlogListTable";
 
 const CLOUD_NAME = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "").replace(/['"]/g, "");
 const CLOUD_UPLOAD_PRESET = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? "subhlaxmi").replace(/['"]/g, "");
@@ -34,6 +32,23 @@ async function uploadToCloudinary(
     xhr.send(fd);
   });
 }
+
+
+export type BlogPost = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  thumbnail: string;
+  category: string;
+  tags: string[];
+  author: string;
+  published: boolean;
+  featured: boolean;
+  readMinutes: number;
+  createdAt: string;
+};
 
 
 const CATEGORIES = ["General", "Lottery", "Winners", "Tips & Tricks", "News"];
@@ -270,64 +285,32 @@ function ThumbnailUpload({
   );
 }
 
-export function BlogManagement() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"list" | "editor">("list");
-  const [editing, setEditing] = useState<BlogPost | null>(null);
+export function BlogEditorModal({
+  post,
+  onSaveComplete,
+  onCancel,
+}: {
+  post: BlogPost | null;
+  onSaveComplete: () => void;
+  onCancel: () => void;
+}) {
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const jsonRef = useRef<HTMLInputElement>(null);
+  const editing = post;
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/blog?all=true&limit=50");
-      if (res.ok) {
-        const data = await res.json() as { posts: BlogPost[] };
-        setPosts(data.posts);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchPosts(); }, []);
-
-  // Auto-generate slug from title
-  const handleTitleChange = (val: string) => {
-    setForm(f => ({
-      ...f,
-      title: val,
-      slug: editing ? f.slug : val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    }));
-  };
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setView("editor");
-  };
-
-  const openEdit = async (post: BlogPost) => {
+  const fetchFullPost = async (p: BlogPost) => {
     setLoadingEdit(true);
-    setView("editor");
-    setEditing(post);
-    // Prefill with known fields first (content will be empty until fetch completes)
     setForm({
-      title: post.title, slug: post.slug, excerpt: post.excerpt ?? "",
-      content: "", thumbnail: post.thumbnail ?? "", category: post.category ?? "General",
-      tags: Array.isArray(post.tags) ? post.tags.join(", ") : "",
-      author: post.author ?? "",
-      published: post.published ?? false, featured: post.featured ?? false,
-      readMinutes: post.readMinutes ?? 0,
+      title: p.title, slug: p.slug, excerpt: p.excerpt ?? "",
+      content: "", thumbnail: p.thumbnail ?? "", category: p.category ?? "General",
+      tags: Array.isArray(p.tags) ? p.tags.join(", ") : "",
+      author: p.author ?? "",
+      published: p.published ?? false, featured: p.featured ?? false,
+      readMinutes: p.readMinutes ?? 0,
     });
     try {
-      // List API excludes `content` (projection: { content: 0 }) — fetch full post
-      const res = await fetch(`/api/blog/${post._id}`);
+      const res = await fetch(`/api/blog/${p._id}`);
       if (res.ok) {
         const full = await res.json() as BlogPost;
         setForm({
@@ -346,6 +329,23 @@ export function BlogManagement() {
       setLoadingEdit(false);
     }
   };
+
+  useEffect(() => {
+    if (post) fetchFullPost(post);
+    else setForm(EMPTY_FORM);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post]);
+
+  // Auto-generate slug from title
+  const handleTitleChange = (val: string) => {
+    setForm(f => ({
+      ...f,
+      title: val,
+      slug: editing ? f.slug : val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    }));
+  };
+
+
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.slug.trim() || !form.content.trim()) {
@@ -368,9 +368,7 @@ export function BlogManagement() {
       });
       const data = await res.json() as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Save failed.");
-      toast.success(editing ? "Post updated!" : "Post created!");
-      setView("list");
-      fetchPosts();
+      onSaveComplete();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed.");
     } finally {
@@ -378,131 +376,194 @@ export function BlogManagement() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!postToDelete) return;
-    setDeleting(postToDelete._id);
-    try {
-      const res = await fetch(`/api/blog/${postToDelete._id}`, { method: "DELETE" });
-      const data = await res.json() as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Delete failed.");
-      toast.success("Post deleted.");
-      setPosts(p => p.filter(x => x._id !== postToDelete._id));
-      setPostToDelete(null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed.");
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  const handleTogglePublish = async (post: BlogPost) => {
-    try {
-      const res = await fetch(`/api/blog/${post._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ published: !post.published }),
-      });
-      if (!res.ok) throw new Error("Update failed.");
-      toast.success(post.published ? "Post unpublished." : "Post published!");
-      setPosts(p => p.map(x => x._id === post._id ? { ...x, published: !x.published } : x));
-    } catch {
-      toast.error("Failed to update post.");
-    }
-  };
-
-  // JSON import
-  const handleJsonImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      try {
-        const raw = JSON.parse(ev.target?.result as string) as Partial<BlogPost> | Partial<BlogPost>[];
-        const items = Array.isArray(raw) ? raw : [raw];
-        let success = 0;
-        for (const item of items) {
-          if (!item.title || !item.content) continue;
-          const payload = {
-            title: item.title,
-            slug: item.slug ?? item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-            excerpt: item.excerpt ?? "",
-            content: item.content,
-            thumbnail: item.thumbnail ?? "",
-            category: item.category ?? "General",
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            author: item.author ?? "Admin",
-            published: item.published ?? false,
-            featured: item.featured ?? false,
-            readMinutes: item.readMinutes ?? 0,
-          };
-          const res = await fetch("/api/blog", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (res.ok) success++;
-        }
-        toast.success(`${success} post(s) imported successfully!`);
-        fetchPosts();
-      } catch {
-        toast.error("Invalid JSON file.");
-      }
-    };
-    reader.readAsText(file);
-    if (jsonRef.current) jsonRef.current.value = "";
-  };
-
-  /* ── LIST VIEW ── */
-  if (view === "list") {
-    return (
-      <div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-white">Blog Management</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">{posts.length} post{posts.length !== 1 ? "s" : ""} total</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-white/25 transition">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Import JSON
-              <input ref={jsonRef} type="file" accept=".json" className="hidden" onChange={handleJsonImport} />
-            </label>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="flex items-center gap-2 rounded-xl sl-cta-gradient px-4 py-2 text-xs font-bold text-white"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-              New Post
-            </button>
-          </div>
-        </div>
-
-        <BlogListTable
-          posts={posts}
-          loading={loading}
-          deleting={deleting}
-          postToDelete={postToDelete}
-          setPostToDelete={setPostToDelete}
-          confirmDelete={confirmDelete}
-          handleTogglePublish={handleTogglePublish}
-          openEdit={openEdit}
-          openCreate={openCreate}
-        />
-      </div>
-    );
-  }
 
   /* ── EDITOR VIEW ── */
   return (
-    <BlogEditorModal
-      post={editing}
-      onSaveComplete={() => {
-        setView("list");
-        fetchPosts();
-      }}
-      onCancel={() => setView("list")}
-    />
+    <div>
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/12 text-zinc-400 hover:text-white transition"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div>
+          <h2 className="text-lg font-bold text-white">{editing ? "Edit Post" : "New Post"}</h2>
+          <p className="text-xs text-zinc-500">{editing ? `Editing: ${editing.title}` : "Create a new blog article"}</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-white/12 px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-xl sl-cta-gradient px-5 py-2 text-xs font-bold text-white disabled:opacity-50"
+          >
+            {saving ? "Saving…" : editing ? "Update Post" : "Publish Post"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        {/* Main fields */}
+        <div className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Title *</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={e => handleTitleChange(e.target.value)}
+              placeholder="Article title…"
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50"
+            />
+          </div>
+
+          {/* Slug */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Slug *</label>
+            <input
+              type="text"
+              value={form.slug}
+              onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+              placeholder="article-url-slug"
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50"
+            />
+            <p className="mt-1 text-[11px] text-zinc-600">URL: /blog/{form.slug || "your-slug"}</p>
+          </div>
+
+          {/* Excerpt */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Excerpt</label>
+            <textarea
+              rows={2}
+              value={form.excerpt}
+              onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))}
+              placeholder="Short summary shown in blog cards…"
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50 resize-none"
+            />
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-zinc-400">
+              Content * (HTML supported)
+              <span className="text-[11px] font-normal text-zinc-600">~{Math.ceil((form.content ?? "").split(/\s+/).filter(Boolean).length / 200)} min read</span>
+            </label>
+            {loadingEdit ? (
+              <div className="flex h-64 items-center justify-center rounded-xl border border-white/12 bg-white/5">
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-500/40 border-t-amber-400" />
+                  Loading content…
+                </div>
+              </div>
+            ) : (
+              <textarea
+                rows={18}
+                value={form.content ?? ""}
+                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                placeholder="<h2>Introduction</h2><p>Your article content here… HTML tags are supported.</p>"
+                className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50 resize-y leading-relaxed"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar fields */}
+        <div className="space-y-4">
+          {/* Thumbnail — Cloudinary Upload */}
+          <ThumbnailUpload
+            value={form.thumbnail}
+            onChange={(url) => setForm(f => ({ ...f, thumbnail: url }))}
+          />
+
+          {/* Category */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Category</label>
+            <input
+              type="text"
+              list="category-options"
+              value={form.category}
+              onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+              placeholder="Select or type a category..."
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50"
+            />
+            <datalist id="category-options">
+              {CATEGORIES.map(c => <option key={c} value={c} />)}
+            </datalist>
+          </div>
+
+          {/* Author */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Author</label>
+            <input
+              type="text"
+              value={form.author}
+              onChange={e => setForm(f => ({ ...f, author: e.target.value }))}
+              placeholder="Admin"
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500/50"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Tags (press Enter to add)</label>
+            <TagsInput
+              tagsStr={form.tags}
+              onChange={val => setForm(f => ({ ...f, tags: val }))}
+            />
+          </div>
+
+          {/* Read minutes override */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-zinc-400">Read Time (min, 0=auto)</label>
+            <input
+              type="number"
+              min="0"
+              value={form.readMinutes}
+              onChange={e => setForm(f => ({ ...f, readMinutes: Number(e.target.value) }))}
+              className="w-full rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-xs text-zinc-100 outline-none focus:border-amber-500/50"
+            />
+          </div>
+
+          {/* Toggles */}
+          <div className="space-y-3 rounded-xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-zinc-300">Published</span>
+              <Toggle
+                checked={form.published}
+                onChange={(v) => setForm(f => ({ ...f, published: v }))}
+                color="emerald"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-zinc-300">Featured</span>
+              <Toggle
+                checked={form.featured}
+                onChange={(v) => setForm(f => ({ ...f, featured: v }))}
+                color="amber"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full rounded-xl sl-cta-gradient py-3 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? "Saving…" : editing ? "Update Post" : "Create Post"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

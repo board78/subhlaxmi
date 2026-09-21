@@ -16,6 +16,7 @@ export type DrawDoc = {
   ticketRangeStart: number;
   ticketRangeEnd: number;
   status: "upcoming" | "active" | "closed" | "drawn";
+  statusOverride?: "upcoming" | "active" | "closed" | "drawn";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -53,6 +54,7 @@ export type DrawPublic = {
   ticketRangeStart: number;
   ticketRangeEnd: number;
   status: string;
+  statusOverride?: string;
 };
 
 export type DrawSummaryPublic = DrawPublic & {

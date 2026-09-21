@@ -22,6 +22,7 @@ import type {
  */
 export function computeDrawStatus(doc: DrawDoc): DrawDoc["status"] {
   // Manual overrides always take precedence
+  if (doc.statusOverride) return doc.statusOverride;
   if (doc.status === "drawn") return "drawn";
   if (doc.status === "closed") return "closed";
 
@@ -70,6 +71,7 @@ function toDrawPublic(doc: DrawDoc): DrawPublic {
     ticketRangeStart: doc.ticketRangeStart,
     ticketRangeEnd: doc.ticketRangeEnd,
     status: computeDrawStatus(doc),
+    statusOverride: doc.statusOverride,
   };
 }
 

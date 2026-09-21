@@ -71,32 +71,21 @@ export async function PUT(
 
     // Manual status override — allow all 4 statuses
     const allowedStatuses = ["upcoming", "active", "closed", "drawn"];
-    if (body.status && allowedStatuses.includes(body.status)) {
-      $set.status = body.status;
-    }
-
+    
     const db = await getDb();
     const col = db.collection<DrawDoc>("draws");
 
-    // When forcing upcoming/active: remove expiresAt+activatesAt so
-    // computeDrawStatus() falls back to the stored status field.
-    // IMPORTANT: delete from $set first — MongoDB disallows the same field
-    // in both $set and $unset in a single operation.
-    let matched = 0;
-    if (body.status === "upcoming" || body.status === "active") {
-      delete $set.expiresAt;
-      delete $set.activatesAt;
-      const r = await col.updateOne(
-        { _id: new ObjectId(id) },
-        { $set, $unset: { expiresAt: "", activatesAt: "" } },
-      );
-      matched = r.matchedCount;
-    } else {
-      const r = await col.updateOne({ _id: new ObjectId(id) }, { $set });
-      matched = r.matchedCount;
+    const updateDoc: Record<string, any> = { $set };
+    
+    if (body.status && allowedStatuses.includes(body.status)) {
+      $set.statusOverride = body.status;
+    } else if (body.status === "auto") {
+      updateDoc.$unset = { statusOverride: "" };
     }
 
-    if (matched === 0) return jsonError("Draw not found.", 404);
+    const r = await col.updateOne({ _id: new ObjectId(id) }, updateDoc);
+
+    if (r.matchedCount === 0) return jsonError("Draw not found.", 404);
 
     return NextResponse.json({ message: "Draw updated successfully." });
   } catch (error) {

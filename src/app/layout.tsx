@@ -191,7 +191,7 @@ export default function RootLayout({
   ];
 
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -206,7 +206,7 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="en-in" href="https://subhlaxmi.in" />
         <link rel="alternate" hrefLang="hi" href="https://subhlaxmi.in" />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <ThemeSync />
         <AppToaster />
         <FacebookPixelProvider />

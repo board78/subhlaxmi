@@ -20,7 +20,14 @@ export function useAuth() {
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/me")
-      .then(async (r) => (r.ok ? ((await r.json()) as { user: SafeUser }) : null))
+      .then(async (r) => {
+        if (!r.ok) return null;
+        try {
+          return (await r.json()) as { user: SafeUser };
+        } catch {
+          return null;
+        }
+      })
       .then((p) => { if (!cancelled && p?.user) setAuthUser(p.user); })
       .catch(() => { if (!cancelled) setAuthUser(null); });
     return () => { cancelled = true; };
@@ -32,7 +39,14 @@ export function useAuth() {
     let cancelled = false;
 
     void fetch("/api/cart", { cache: "no-store" })
-      .then(async (r) => ({ ok: r.ok, data: (await r.json()) as { cart?: unknown } }))
+      .then(async (r) => {
+        if (!r.ok) return { ok: false, data: {} as { cart?: unknown } };
+        try {
+          return { ok: true, data: (await r.json()) as { cart?: unknown } };
+        } catch {
+          return { ok: false, data: {} as { cart?: unknown } };
+        }
+      })
       .then(({ ok, data }) => {
         if (cancelled || !ok || !data.cart) return;
         const remote = data.cart as ReturnType<typeof getCart>;

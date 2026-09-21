@@ -13,7 +13,7 @@ function PixelTracker() {
       .then((x) => x.default)
       .then((ReactPixel) => {
         const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-        if (!pixelId) return;
+        if (!pixelId || process.env.NODE_ENV !== "production") return;
 
         ReactPixel.init(pixelId, undefined, {
           autoConfig: true,
@@ -29,7 +29,7 @@ function PixelTracker() {
       .then((x) => x.default)
       .then((ReactPixel) => {
         const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-        if (pixelId) {
+        if (pixelId && process.env.NODE_ENV === "production") {
           ReactPixel.pageView();
         }
       })

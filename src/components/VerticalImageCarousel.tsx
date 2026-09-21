@@ -63,12 +63,7 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
         />
       </div>
 
-      {/* 🚀 SEO & Performance: Preload all images so they don't blink/flash when animating */}
-      <div className="hidden">
-        {images.map((img) => (
-          <link key={img} rel="preload" href={img} as="image" />
-        ))}
-      </div>
+      {/* Preloading removed to prevent 'preloaded but not used' console warnings */}
     </>
   );
 }

@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
       ticketPrefix: d.ticketPrefix,
       ticketRangeStart: d.ticketRangeStart,
       ticketRangeEnd: d.ticketRangeEnd,
-      status: computeDrawStatus(d),   // computed from timestamps
+      status: computeDrawStatus(d),   // computed from timestamps or override
+      statusOverride: d.statusOverride,
       storedStatus: d.status,         // raw DB value (for admin context)
       createdAt: d.createdAt.toISOString(),
     }));
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       ticketPrefix?: string;
       ticketRangeStart?: number;
       ticketRangeEnd?: number;
+      status?: string;
     };
 
     if (!body.drawSeriesName?.trim())
@@ -128,7 +130,10 @@ export async function POST(request: NextRequest) {
       ticketPrefix: body.ticketPrefix.trim().toUpperCase(),
       ticketRangeStart: Math.floor(body.ticketRangeStart),
       ticketRangeEnd: Math.floor(body.ticketRangeEnd),
-      status: "upcoming",
+      status: "upcoming", // fallback status
+      statusOverride: (body.status && body.status !== "auto" && ["upcoming", "active", "closed", "drawn"].includes(body.status)) 
+                        ? (body.status as "upcoming" | "active" | "closed" | "drawn") 
+                        : undefined,
       createdAt: now,
       updatedAt: now,
     };
