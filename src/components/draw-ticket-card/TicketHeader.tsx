@@ -7,7 +7,8 @@ type Props = {
   language: "en" | "hi";
 };
 
-export function TicketHeader({ draw, language }: Props) {
+export function TicketHeader({ draw, language }:
+  Props) {
   const statusMap: Record<string, { label: string; bg: string; color: string }> = {
     active: {
       label: language === "hi" ? "सक्रिय" : "Active",
