@@ -12,7 +12,7 @@ import { WinnersSection } from "@/components/features/home/WinnersSection";
 import { LiveResultsBoard } from "@/components/features/home/LiveResultsBoard";
 import { UpiPromo } from "@/components/features/home/UpiPromo";
 import { PopularDrawsSection } from "@/components/features/home/PopularDrawsSection";
-import { VisitorCounter } from "@/components/VisitorCounter";
+// import { VisitorCounter } from "@/components/VisitorCounter";
 import { Footer } from "@/components/Footer";
 import { VerticalImageCarousel } from "@/components/VerticalImageCarousel";
 import { ReactLenis } from 'lenis/react';
@@ -161,7 +161,7 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
 
               {/* Visitor counter */}
               <div className="mt-4 sm:mt-5">
-                <VisitorCounter language={language} />
+                {/* <VisitorCounter language={language} /> */}
               </div>
 
               {/* Winners section */}
