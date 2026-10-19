@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, jsonError } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import type { DrawDoc } from "@/lib/draws";
-import { computeDrawStatus, generateTicketsForDraw } from "@/lib/draws";
+import { computeDrawStatus, generateTicketsForDraw, renewExpiredDraws } from "@/lib/draws";
 import { ObjectId } from "mongodb";
 
 /**
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
     const db = await getDb();
+    await renewExpiredDraws(db);
 
     const draws = await db
       .collection<DrawDoc>("draws")

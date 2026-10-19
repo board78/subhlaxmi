@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx --env-file=.env scripts/seed-tickets.ts",
+    "reset:draws": "tsx --env-file=.env scripts/reset-draws-101.ts",
     "backfill": "tsx --env-file=.env scripts/backfill-draw-tickets.ts",
     "reset:samridhi": "tsx --env-file=.env scripts/reset-samridhi-tickets.ts",
     "reset:kuber": "tsx --env-file=.env scripts/reset-kuber-tickets.ts",

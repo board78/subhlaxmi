@@ -97,7 +97,33 @@ function toTicketPublic(doc: TicketDoc): TicketPublic {
 export async function renewExpiredDraws(db: Db): Promise<void> {
   const now = new Date();
 
-  // Only auto-renew draws that have the new timestamp fields
+  // 1. Initialize any legacy draws that lack timestamp fields to the current 7-day cycle
+  const legacyDraws = await db
+    .collection<DrawDoc>("draws")
+    .find({
+      expiresAt: { $exists: false },
+      status: { $in: ["active", "upcoming"] },
+    })
+    .toArray();
+
+  for (const leg of legacyDraws) {
+    const act = leg.activatesAt ?? now;
+    const exp = new Date(act.getTime() + 7 * 24 * 60 * 60 * 1000);
+    await db.collection<DrawDoc>("draws").updateOne(
+      { _id: leg._id },
+      {
+        $set: {
+          activatesAt: act,
+          expiresAt: exp,
+          drawDate: exp,
+          status: "active",
+          updatedAt: now,
+        },
+      },
+    );
+  }
+
+  // 2. Find draws that have expired (expiresAt <= now) and are not closed/drawn
   const expiredDraws = await db
     .collection<DrawDoc>("draws")
     .find({
@@ -116,22 +142,41 @@ export async function renewExpiredDraws(db: Db): Promise<void> {
 
     if (!draw.drawSeriesName || draw.drawNumber == null) continue;
 
-    // Check if successor already exists
-    const nextNumber = draw.drawNumber + 1;
-    const successorExists = await db.collection<DrawDoc>("draws").findOne({
+    // Check if an active or upcoming successor already exists for this series
+    const activeSuccessor = await db.collection<DrawDoc>("draws").findOne({
       drawSeriesName: draw.drawSeriesName,
-      drawNumber: nextNumber,
+      status: { $in: ["active", "upcoming"] },
+      expiresAt: { $gt: now },
     });
 
-    if (!successorExists) {
-      const activatesAt = draw.expiresAt!;
-      const expiresAt = new Date(activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (!activeSuccessor) {
+      // Find highest draw number in this series to ensure strict increment
+      const lastInSeries = await db
+        .collection<DrawDoc>("draws")
+        .findOne(
+          { drawSeriesName: draw.drawSeriesName },
+          { sort: { drawNumber: -1 }, projection: { drawNumber: 1 } },
+        );
+      const nextNumber = Math.max(
+        (lastInSeries?.drawNumber ?? 100) + 1,
+        draw.drawNumber + 1,
+      );
+
+      // Determine activation and expiration dates for the 7-day cycle
+      let activatesAt = draw.expiresAt ? new Date(draw.expiresAt) : new Date(now);
+      let expiresAt = new Date(activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      // If overdue by more than 7 days, align with current active 7-day window
+      if (expiresAt <= now) {
+        activatesAt = new Date(now);
+        expiresAt = new Date(activatesAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
 
       const newDraw: Omit<DrawDoc, "_id"> = {
         name: `${draw.drawSeriesName} #${nextNumber}`,
         drawSeriesName: draw.drawSeriesName,
         drawNumber: nextNumber,
-        drawDate: activatesAt,
+        drawDate: expiresAt,
         drawTime: draw.drawTime,
         activatesAt,
         expiresAt,
@@ -141,7 +186,7 @@ export async function renewExpiredDraws(db: Db): Promise<void> {
         ticketPrefix: draw.ticketPrefix,
         ticketRangeStart: draw.ticketRangeStart,
         ticketRangeEnd: draw.ticketRangeEnd,
-        status: "upcoming",
+        status: "active",
         createdAt: now,
         updatedAt: now,
       };
@@ -150,8 +195,12 @@ export async function renewExpiredDraws(db: Db): Promise<void> {
         .collection<DrawDoc>("draws")
         .insertOne(newDraw as DrawDoc);
 
-      // Fire-and-forget ticket generation
-      void generateTicketsForDraw(result.insertedId).catch(console.error);
+      // Generate tickets immediately for the new draw
+      try {
+        await generateTicketsForDraw(result.insertedId);
+      } catch (err) {
+        console.error(`Failed to generate tickets for renewed draw ${newDraw.name}:`, err);
+      }
     }
   }
 }
@@ -235,6 +284,7 @@ export async function getActiveDrawSummaries(): Promise<DrawSummaryPublic[]> {
 export async function getDrawById(id: string): Promise<DrawPublic | null> {
   if (!ObjectId.isValid(id)) return null;
   const db = await getDb();
+  await renewExpiredDraws(db);
   const doc = await db
     .collection<DrawDoc>("draws")
     .findOne({ _id: new ObjectId(id) });
