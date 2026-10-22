@@ -18,6 +18,7 @@ type RealBooking = {
 export function LiveBookingToast() {
   const realBookingsRef = useRef<RealBooking[]>([]);
   const shownIdsRef = useRef<Set<string>>(new Set());
+  const recentNamesRef = useRef<string[]>([]);
 
   // Fetch real bookings periodically — skip when tab is hidden to save server resources
   useEffect(() => {
@@ -62,29 +63,38 @@ export function LiveBookingToast() {
   const triggerRandomToast = () => {
     toast.dismiss(); // Instantly dismiss all previous toasts
 
-    // Try to get an unshown REAL booking
+    // Try to get an unshown REAL booking whose name hasn't been shown recently
     let bookingToDisplay: { name: string; city: string; tickets: number; drawName: string } | null = null;
-    let isReal = false;
 
-    const unshownReal = realBookingsRef.current.find(b => !shownIdsRef.current.has(b.id));
+    const unshownReal = realBookingsRef.current.find(
+      (b) => !shownIdsRef.current.has(b.id) && !recentNamesRef.current.includes(b.name)
+    );
 
     if (unshownReal) {
       shownIdsRef.current.add(unshownReal.id);
       bookingToDisplay = unshownReal;
-      isReal = true;
-      // Optional: limit the size of the set so it doesn't grow infinitely
-      if (shownIdsRef.current.size > 100) {
-        const firstElements = Array.from(shownIdsRef.current).slice(0, 50);
-        firstElements.forEach(id => shownIdsRef.current.delete(id));
-      }
     } else {
-      // Fallback to static dummy bookings
-      const randomIndex = Math.floor(Math.random() * DUMMY_BOOKINGS.length);
-      bookingToDisplay = DUMMY_BOOKINGS[randomIndex];
+      // Pick a dummy booking whose name hasn't been shown in the last 25 toasts
+      const candidates = DUMMY_BOOKINGS.filter(
+        (b) => !recentNamesRef.current.includes(b.name)
+      );
+      const pool = candidates.length > 0 ? candidates : DUMMY_BOOKINGS;
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      bookingToDisplay = pool[randomIndex];
     }
 
     if (!bookingToDisplay) return;
-    const booking = bookingToDisplay;
+
+    // Track recently shown names (sliding window of 25) so no name repeats
+    recentNamesRef.current.push(bookingToDisplay.name);
+    if (recentNamesRef.current.length > 25) {
+      recentNamesRef.current.shift();
+    }
+
+    const booking = {
+      ...bookingToDisplay,
+      drawName: bookingToDisplay.drawName || "Subhlaxmi Special",
+    };
 
     // Wait 150ms before triggering the new toast for smooth transition
     setTimeout(() => {
