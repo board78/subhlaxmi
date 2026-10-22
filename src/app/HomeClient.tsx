@@ -24,37 +24,48 @@ import type { LiveResult } from "@/lib/types";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useDraws, useResults, usePlatformStats } from "@/hooks/useHomeData";
 
 type HomeClientProps = {
   initialDraws: DrawSummaryPublic[];
   initialResults: LiveResult[];
   initialStats: { totalUsers: number; totalWinners: number; ticketsSold: number } | null;
+  initialCarouselImages?: string[];
 };
 
-export function HomeClient({ initialDraws, initialResults, initialStats }: HomeClientProps) {
+export function HomeClient({ initialDraws, initialResults, initialStats, initialCarouselImages }: HomeClientProps) {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("en");
   const currentCopy = siteCopy[language];
 
+  // SWR handles real-time updates while using SSR data instantly
+  const { draws } = useDraws(initialDraws);
+  const { results } = useResults(initialResults);
+  const { stats } = usePlatformStats(initialStats);
+
+  const activeDraws = draws.length > 0 ? draws : initialDraws;
+  const activeResults = results.length > 0 ? results : initialResults;
+  const activeStats = stats || initialStats;
+
   // Merge server-fetched stats into display copy
   const displayCopy = useMemo(() => {
-    if (!initialStats) return currentCopy;
+    if (!activeStats) return currentCopy;
     return {
       ...currentCopy,
       stats: currentCopy.stats.map((s, index) => {
-        if (index === 0) return { ...s, label: language === "hi" ? "सक्रिय खिलाड़ी" : "Active Players", value: initialStats.totalUsers, suffix: "" };
-        if (index === 1) return { ...s, label: language === "hi" ? "विजेता" : "Winners", value: initialStats.totalWinners, suffix: "" };
-        if (index === 2) return { ...s, label: language === "hi" ? "बिके हुए टिकट" : "Tickets Sold", value: initialStats.ticketsSold, suffix: "" };
+        if (index === 0) return { ...s, label: language === "hi" ? "सक्रिय खिलाड़ी" : "Active Players", value: activeStats.totalUsers, suffix: "" };
+        if (index === 1) return { ...s, label: language === "hi" ? "विजेता" : "Winners", value: activeStats.totalWinners, suffix: "" };
+        if (index === 2) return { ...s, label: language === "hi" ? "बिके हुए टिकट" : "Tickets Sold", value: activeStats.ticketsSold, suffix: "" };
         return s;
       }),
     };
-  }, [currentCopy, initialStats, language]);
+  }, [currentCopy, activeStats, language]);
 
   // Auth + cart sync (client-only — needs localStorage + cookies)
   const { authUser, setAuthUser, updateAuthedUser } = useAuth();
 
-  // Countdown from server-side draws data
-  const { countdown, nextDraw } = useCountdown(initialDraws);
+  // Countdown from active draws data
+  const { countdown, nextDraw } = useCountdown(activeDraws);
 
   // UI state
   const [authOpen, setAuthOpen] = useState(() => {
@@ -120,8 +131,12 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
                   {/* Hero carousel — static import, no data needed */}
                   <section className="royal-panel royal-panel-strong sl-hero-outline relative w-full overflow-hidden rounded-3xl border-2 border-amber-500/35 bg-transparent px-5 pb-3 pt-5 sm:rounded-[28px] sm:px-6 sm:pt-6">
                     <div className="relative flex w-full flex-col items-center gap-4">
-                      <div className="">
-                        <VerticalImageCarousel className="p-0" intervalMs={3000} />
+                      <div className="w-full">
+                        <VerticalImageCarousel
+                          className="p-0"
+                          intervalMs={3000}
+                          initialImages={initialCarouselImages}
+                        />
                       </div>
                       <div className="w-full max-w-4xl text-center">
                         <p className="mx-auto mt-4 max-w-3xl text-[10px] leading-4 font-medium text-foreground opacity-[0.92] sm:text-xs sm:leading-6 md:text-sm">
@@ -131,9 +146,9 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
                     </div>
                   </section>
 
-                  {/* Popular draws — uses server-fetched data */}
+                  {/* Popular draws — uses server-fetched data + SWR sync */}
                   <PopularDrawsSection
-                    liveDraws={initialDraws}
+                    liveDraws={activeDraws}
                     language={language}
                     popularTitle={currentCopy.popularTitle}
                     buyTicketLabel={currentCopy.buyTicket}
@@ -145,8 +160,8 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
                 <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
                   <RightInsightColumn currentCopy={displayCopy} countdown={countdown} nextDraw={nextDraw} />
 
-                  {/* Live results — uses server-fetched data */}
-                  <LiveResultsBoard liveResults={initialResults} title={currentCopy.liveResultsTitle} />
+                  {/* Live results — uses server-fetched data + SWR sync */}
+                  <LiveResultsBoard liveResults={activeResults} title={currentCopy.liveResultsTitle} />
 
                   {/* UPI promo */}
                   <UpiPromo
@@ -165,7 +180,7 @@ export function HomeClient({ initialDraws, initialResults, initialStats }: HomeC
               </div>
 
               {/* Winners section */}
-              <WinnersSection liveResults={initialResults} />
+              <WinnersSection liveResults={activeResults} />
 
               {/* Footer */}
               <Footer language={language} />

@@ -78,7 +78,6 @@ export function Footer({ language = "en" }: FooterProps) {
       {/* Background glow lines */}
       <div className="pointer-events-none absolute bottom-[-20%] right-[-10%] h-125 w-125 rounded-full bg-amber-600/10 blur-[120px]" />
       <div className="pointer-events-none absolute top-[-10%] left-[-10%] h-100 w-100 rounded-full bg-fuchsia-600/10 blur-[100px]" />
-      <div className="pointer-events-none absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
 
       <div className="relative px-6 py-10 md:px-10 md:py-16 lg:px-16 lg:py-20">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">

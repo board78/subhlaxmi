@@ -101,10 +101,11 @@ export function useCarouselImages(fallback: string[] = []) {
     "/api/carousel-images",
     fetcher,
     {
+      fallbackData: fallback.length ? { images: fallback.map((url) => ({ url })) } : undefined,
       revalidateOnFocus: false,
       refreshInterval: 300_000,      // carousel images rarely change
       dedupingInterval: 300_000,
     }
   );
-  return data?.images?.map(img => img.url) ?? fallback;
+  return data?.images?.map((img) => img.url) ?? fallback;
 }

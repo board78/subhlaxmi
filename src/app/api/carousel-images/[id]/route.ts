@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { getSessionUser, jsonError } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { revalidatePath } from "next/cache";
 
 export async function DELETE(
   request: NextRequest,
@@ -16,6 +17,8 @@ export async function DELETE(
     const p = await params;
     const db = await getDb();
     await db.collection("carousel_images").deleteOne({ _id: new ObjectId(p.id) });
+
+    revalidatePath("/");
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -45,6 +48,8 @@ export async function PUT(
       { _id: new ObjectId(p.id) },
       { $set: { order } }
     );
+
+    revalidatePath("/");
 
     return NextResponse.json({ success: true });
   } catch (error) {

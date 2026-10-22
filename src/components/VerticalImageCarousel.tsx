@@ -9,28 +9,46 @@ const STATIC_IMAGES = [
   "/winnerticket.png", // Provide a solid fallback
 ] as const;
 
-type Props = { className?: string; intervalMs?: number };
+type Props = {
+  className?: string;
+  intervalMs?: number;
+  initialImages?: string[];
+};
 
-export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
+export function VerticalImageCarousel({ className, intervalMs = 3000, initialImages }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const timerRef = useRef<number | null>(null);
   const [restartKey, setRestartKey] = useState(0);
 
-  // SWR handles caching across page navigations instantly
-  const dynamicImages = useCarouselImages();
+  // SWR receives SSR initialImages as immediate fallbackData
+  const dynamicImages = useCarouselImages(initialImages);
 
-  const images = dynamicImages.length ? dynamicImages : (STATIC_IMAGES as unknown as string[]);
+  const images = dynamicImages.length
+    ? dynamicImages
+    : (initialImages && initialImages.length > 0
+      ? initialImages
+      : (STATIC_IMAGES as unknown as string[]));
 
+  // Preload and keep all slides in browser cache so switching is 100% instant with 0 stutter
+  const preloadedRefs = useRef<HTMLImageElement[]>([]);
   useEffect(() => {
-    const tick = () => {
-      timerRef.current = window.setTimeout(() => {
-        setActiveIndex((i) => (i + 1) % images.length);
-        tick();
-      }, intervalMs);
-    };
-    tick();
-    return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
-  }, [intervalMs, images.length, restartKey]);
+    if (typeof window === "undefined" || !images.length) return;
+    preloadedRefs.current = images.map((url) => {
+      const img = new Image();
+      img.src = url;
+      return img;
+    });
+  }, [images]);
+
+  // Continuous auto-scroll interval without any hover pause blocking
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % images.length);
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [images.length, intervalMs, restartKey]);
 
   const jumpTo = (index: number) => {
     setActiveIndex(index);
@@ -40,7 +58,7 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
   const src = images[activeIndex] ?? images[0];
 
   return (
-    <>
+    <div className="w-full">
       {/* Mobile + Tablet Carousel - visible up to lg screen size */}
       <div className="block lg:hidden w-full">
         <CarouselMobile
@@ -62,8 +80,6 @@ export function VerticalImageCarousel({ className, intervalMs = 1000 }: Props) {
           className={className}
         />
       </div>
-
-      {/* Preloading removed to prevent 'preloaded but not used' console warnings */}
-    </>
+    </div>
   );
 }

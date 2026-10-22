@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { getSessionUser, jsonError } from "@/lib/auth";
 
+import { revalidatePath } from "next/cache";
+import { optimizeImageUrl } from "@/server/services/carousel.service";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -13,15 +16,23 @@ export async function GET() {
       .sort({ order: 1, createdAt: -1 })
       .toArray();
 
-    return NextResponse.json({
-      images: images.map(img => ({
-        id: img._id.toString(),
-        url: img.url,
-        order: img.order || 0,
-      }))
-    });
+    return NextResponse.json(
+      {
+        images: images.map((img) => ({
+          id: img._id.toString(),
+          url: optimizeImageUrl(img.url),
+          order: img.order || 0,
+        })),
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
-    return NextResponse.json({ images: [] });
+    console.error("[carousel-images GET error]:", error);
+    return NextResponse.json({ images: [], error: String(error) });
   }
 }
 
@@ -43,6 +54,8 @@ export async function POST(request: NextRequest) {
       order: order || 0,
       createdAt: new Date(),
     });
+
+    revalidatePath("/");
 
     return NextResponse.json({
       image: {

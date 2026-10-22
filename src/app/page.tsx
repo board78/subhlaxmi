@@ -15,7 +15,8 @@ async function fetchDraws(): Promise<DrawSummaryPublic[]> {
     // Import server service directly — no HTTP overhead
     const { getActiveDrawSummaries } = await import("@/server/services/draws.service");
     return await getActiveDrawSummaries();
-  } catch {
+  } catch (error) {
+    console.error("[fetchDraws error]:", error);
     return [];
   }
 }
@@ -46,7 +47,8 @@ async function fetchResults(): Promise<LiveResult[]> {
       winnerImage: r.user?.image || null,
       declaredAt: (r.declaredAt as Date).toISOString(),
     }));
-  } catch {
+  } catch (error) {
+    console.error("[fetchResults error]:", error);
     return [];
   }
 }
@@ -61,8 +63,19 @@ async function fetchStats(): Promise<{ totalUsers: number; totalWinners: number;
       db.collection("tickets").countDocuments({ status: "sold" }),
     ]);
     return { totalUsers, totalWinners, ticketsSold };
-  } catch {
+  } catch (error) {
+    console.error("[fetchStats error]:", error);
     return null;
+  }
+}
+
+async function fetchCarouselImages(): Promise<string[]> {
+  try {
+    const { getCarouselImagesServer } = await import("@/server/services/carousel.service");
+    return await getCarouselImagesServer();
+  } catch (error) {
+    console.error("[fetchCarouselImages error]:", error);
+    return ["/winnerticket.png"];
   }
 }
 
@@ -73,11 +86,14 @@ export const revalidate = 30; // ISR: regenerate page every 30 seconds
 export default async function Home() {
   // Fetch all data in parallel on the server — user sees pre-rendered HTML instantly.
   // No blank screen, no loading spinners, no client-side API waterfalls.
-  const [draws, results, stats] = await Promise.all([
+  const [draws, results, stats, carouselImages] = await Promise.all([
     fetchDraws(),
     fetchResults(),
     fetchStats(),
+    fetchCarouselImages(),
   ]);
+
+  const primaryHeroImage = carouselImages[0] || "/winnerticket.png";
 
   // Create JSON-LD for Testimonials / Reviews
   const jsonLd = {
@@ -124,6 +140,13 @@ export default async function Home() {
 
   return (
     <>
+      {/* High-priority preload for primary hero image so browser downloads it concurrently with initial HTML */}
+      <link
+        rel="preload"
+        as="image"
+        href={primaryHeroImage}
+        fetchPriority="high"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -132,6 +155,7 @@ export default async function Home() {
         initialDraws={draws}
         initialResults={results}
         initialStats={stats}
+        initialCarouselImages={carouselImages}
       />
     </>
   );
