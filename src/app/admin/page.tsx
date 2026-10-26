@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AdminSidebar, type AdminSection } from "./components/AdminSidebar";
 import { AdminHeader } from "./components/AdminHeader";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { OverviewStats } from "./components/OverviewStats";
 import { UserManagement } from "./components/UserManagement";
 import { DrawManagement } from "./components/DrawManagement";
@@ -41,7 +40,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="sl-admin-page flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="sl-admin-page flex min-h-screen bg-background text-foreground">
       {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/8 blur-3xl" />

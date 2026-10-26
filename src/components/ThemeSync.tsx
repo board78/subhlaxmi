@@ -2,16 +2,16 @@
 
 import { useEffect } from "react";
 
-/** Applies saved theme to <html> on the client — no inline scripts in layout (Next.js 16). */
+/** Enforces dark theme on <html> on the client and clears any old light mode preference */
 export function ThemeSync() {
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("theme");
-      const theme = stored === "light" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", theme);
-      if (!stored) localStorage.setItem("theme", "dark");
+      localStorage.setItem("theme", "dark");
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
     } catch {
       document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
     }
   }, []);
 

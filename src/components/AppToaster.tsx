@@ -4,15 +4,9 @@ import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
 export function AppToaster() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
 
   useEffect(() => {
-    const read = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
-    setTimeout(() => setTheme(read()), 0);
-    const obs = new MutationObserver(() => setTheme(read()));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    
     // Width listener for mobile & tablet detection
     const checkSize = () => {
       setIsMobileOrTablet(window.innerWidth <= 1024);
@@ -21,31 +15,16 @@ export function AppToaster() {
     window.addEventListener("resize", checkSize);
     
     return () => {
-      obs.disconnect();
       window.removeEventListener("resize", checkSize);
     };
   }, []);
 
-  const isDark = theme === "dark";
-
-  const successClass = isDark
-    ? "!border-emerald-500/40 !text-emerald-300"
-    : "!border-emerald-500/40 !text-emerald-800";
-
-  const errorClass = isDark
-    ? "!border-red-500/40 !text-red-300"
-    : "!border-red-500/40 !text-red-800";
-
-  const warningClass = isDark
-    ? "!border-amber-400/40 !text-amber-300"
-    : "!border-amber-400/40 !text-amber-800";
-
+  const successClass = "!border-emerald-500/40 !text-emerald-300";
+  const errorClass = "!border-red-500/40 !text-red-300";
+  const warningClass = "!border-amber-400/40 !text-amber-300";
   const titleClass = "!font-sans !font-semibold !text-[13px]";
   const descClass  = "!font-sans !text-[11px] !opacity-70 !mt-0.5";
-
-  const closeButtonClass = isDark
-    ? "!bg-white/8 hover:!bg-white/15 !text-zinc-400 hover:!text-white !border-white/10 !rounded-lg"
-    : "!bg-slate-100 hover:!bg-slate-200 !text-slate-400 hover:!text-slate-700 !border-slate-200 !rounded-lg";
+  const closeButtonClass = "!bg-white/8 hover:!bg-white/15 !text-zinc-400 hover:!text-white !border-white/10 !rounded-lg";
 
   // Dynamic positioning and inline styles based on viewport size
   const position = isMobileOrTablet ? "bottom-right" : "top-right";
@@ -114,7 +93,7 @@ export function AppToaster() {
         }
       `}</style>
       <Toaster
-        theme={theme}
+        theme="dark"
         position={position}
         richColors={false}
         closeButton

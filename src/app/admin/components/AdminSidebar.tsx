@@ -104,12 +104,12 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
-      <div className="border-b border-[var(--border)] px-6 pb-5 pt-6">
+      <div className="border-b border-border px-6 pb-5 pt-6">
         <Link href="/" className="group flex flex-col leading-none outline-none">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 transition group-hover:text-amber-600">
             Subhlaxmi
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
             Admin Control Panel
           </p>
         </Link>
@@ -127,10 +127,10 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
               className={`group flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition-all ${
                 isActive
                   ? "bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400"
-                  : "text-[var(--muted)] hover:bg-[var(--foreground)]/5 hover:text-[var(--foreground)]"
+                  : "text-muted hover:bg-(--foreground)/5 hover:text-foreground"
               }`}
             >
-              <span className={`transition ${isActive ? "text-amber-500" : "text-[var(--muted)] group-hover:text-[var(--foreground)]"}`}>
+              <span className={`transition ${isActive ? "text-amber-500" : "text-muted group-hover:text-foreground"}`}>
                 {item.icon}
               </span>
               {item.label}
@@ -143,19 +143,19 @@ function SidebarContent({ active, onSelect, adminName }: Pick<Props, "active" | 
       </nav>
 
       {/* Admin Badge */}
-      <div className="border-t border-[var(--border)] px-4 py-4">
-        <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--foreground)]/[0.03] px-3 py-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-white">
+      <div className="border-t border-border px-4 py-4">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-(--foreground)/3 px-3 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-white">
             {adminName.slice(0, 1).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-[var(--foreground)]">{adminName}</p>
+            <p className="truncate text-xs font-semibold text-foreground">{adminName}</p>
             <p className="text-[10px] text-amber-500 font-medium">Super Admin</p>
           </div>
         </div>
         <Link
           href="/"
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] py-2 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--foreground)]/20 hover:text-[var(--foreground)]"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2 text-xs font-semibold text-muted transition hover:border-(--foreground)/20 hover:text-foreground"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -171,7 +171,7 @@ export function AdminSidebar({ active, onSelect, adminName, mobileOpen, onMobile
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--background)] lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">
         <SidebarContent active={active} onSelect={onSelect} adminName={adminName} />
       </aside>
 
@@ -193,7 +193,7 @@ export function AdminSidebar({ active, onSelect, adminName, mobileOpen, onMobile
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-[var(--border)] bg-[var(--background)] lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-background lg:hidden"
             >
               <SidebarContent active={active} onSelect={(s) => { onSelect(s); onMobileClose(); }} adminName={adminName} />
             </motion.aside>

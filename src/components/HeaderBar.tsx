@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useId, useState, useSyncExternalStore } from "react";
 import { CartNavButton } from "./CartNavButton";
-import { ThemeToggle } from "./ThemeToggle";
 import type { SafeUser } from "@/lib/auth";
 
 function getHref(item: string) {
@@ -271,7 +270,6 @@ export function HeaderBar({
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <CartNavButton />
-            <ThemeToggle />
             <button
               type="button"
               className="sl-header-menu-btn inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/25 text-zinc-100 transition hover:border-white/30 hover:bg-black/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400/60"
@@ -366,7 +364,6 @@ export function HeaderBar({
               </button>
             </div>
             <CartNavButton />
-            <ThemeToggle />
             {authUser ? (
               <button
                 type="button"
